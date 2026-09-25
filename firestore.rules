@@ -1,0 +1,96 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    
+    // ====================================================================
+    // FUNÇÕES DE SEGURANÇA E CONFORMIDADE ÉTICA (CFP & LGPD)
+    // ====================================================================
+    
+    // Verifica se a requisição provém de usuário autenticado
+    function isAuthenticated() {
+      return request.auth != null && request.auth.uid != null;
+    }
+
+    // Regra de propriedade do documento
+    function isOwner(userId) {
+      return isAuthenticated() && request.auth.uid == userId;
+    }
+
+    // Validação de strings
+    function isValidString(val, minLen, maxLen) {
+      return val is string && val.size() >= minLen && val.size() <= maxLen;
+    }
+
+    // ====================================================================
+    // 1. ÁREA PRIVADA DA PSICÓLOGA (Subcoleções Isoladas por UID)
+    // ====================================================================
+    match /users/{userId} {
+      allow read, write: if isOwner(userId);
+
+      // Todas as subcoleções clínicas pertencentes à psicóloga titular
+      match /{subcollection}/{docId} {
+        allow read, write: if isOwner(userId);
+      }
+    }
+
+    // ====================================================================
+    // 2. PRÉ-CADASTRO PÚBLICO SEGURO (/cadastro preenchido pelo paciente)
+    // ====================================================================
+    match /public_intakes/{intakeId} {
+      // Paciente anônimo pode enviar seu pré-cadastro com validação dos campos
+      allow create: if isValidString(request.resource.data.name, 2, 120)
+                   && isValidString(request.resource.data.phone, 8, 30);
+      
+      // Apenas a psicóloga autenticada pode ler, aprovar e limpar pré-cadastros
+      allow read, update, delete: if isAuthenticated();
+    }
+
+    // ====================================================================
+    // 3. COLEÇÕES GERAIS (Compatibilidade e Sincronização Direta)
+    // ====================================================================
+
+    match /settings/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /dashboard_metrics/{docId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /patients/{patientId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated() 
+        && isValidString(request.resource.data.name, 2, 120);
+      allow delete: if isAuthenticated();
+    }
+
+    match /anamnesis/{patientId} {
+      allow read, create, update: if isAuthenticated();
+      allow delete: if false; // Anamnese protegida contra perda acidental
+    }
+
+    match /sessions/{sessionId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /clinical_records/{recordId} {
+      allow read: if isAuthenticated();
+      allow create, update: if isAuthenticated();
+      allow delete: if false; // CFP 001/2009: Prontuários não são descartáveis
+    }
+
+    match /assessments/{assessmentId} {
+      allow read, create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+
+    match /payments/{paymentId} {
+      allow read, write: if isAuthenticated();
+    }
+
+    match /audit_logs/{logId} {
+      allow read, create: if isAuthenticated();
+      allow update, delete: if false;
+    }
+  }
+}

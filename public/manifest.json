@@ -1,0 +1,51 @@
+{
+  "id": "/?app=v7",
+  "name": "Ana Lima | Gestão Clínica",
+  "short_name": "Ana Lima",
+  "description": "Sistema de gestão clínica e prontuário psicológico da Psicóloga Ana Lima (CRP 04/60205)",
+  "start_url": "/?app=v7",
+  "scope": "/",
+  "display": "standalone",
+  "display_override": ["standalone", "window-controls-overlay"],
+  "orientation": "portrait-primary",
+  "background_color": "#3f4a3d",
+  "theme_color": "#3f4a3d",
+  "lang": "pt-BR",
+  "categories": ["medical", "health", "productivity"],
+  "icons": [
+    {
+      "src": "/pwa-192x192.png?v=7",
+      "sizes": "192x192",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-512x512.png?v=7",
+      "sizes": "512x512",
+      "type": "image/png",
+      "purpose": "any"
+    },
+    {
+      "src": "/pwa-1024x1024.png?v=7",
+      "sizes": "1024x1024",
+      "type": "image/png",
+      "purpose": "any"
+    }
+  ],
+  "shortcuts": [
+    {
+      "name": "Agenda de Hoje",
+      "short_name": "Agenda",
+      "description": "Ver atendimentos do dia",
+      "url": "/?app=v7",
+      "icons": [{ "src": "/pwa-192x192.png?v=7", "sizes": "192x192", "type": "image/png" }]
+    },
+    {
+      "name": "Pacientes",
+      "short_name": "Pacientes",
+      "description": "Buscar fichas e prontuários",
+      "url": "/?app=v7",
+      "icons": [{ "src": "/pwa-192x192.png?v=7", "sizes": "192x192", "type": "image/png" }]
+    }
+  ]
+}

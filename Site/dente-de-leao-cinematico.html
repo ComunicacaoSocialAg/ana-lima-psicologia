@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Dente-de-Leão Minimalista — Ana Lima</title>
+  <style>
+    :root {
+      --cream: #F4EFE6;
+      --moss: #3F4A3E;
+      --amber: #BD824E;
+      --charcoal: #23221F;
+    }
+    * {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    html, body {
+      width: 100%;
+      height: 100%;
+      overflow: hidden;
+      background: var(--moss);
+      font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+      transition: background-color 0.4s ease;
+    }
+    canvas {
+      display: block;
+      width: 100vw;
+      height: 100vh;
+      cursor: pointer;
+    }
+    .hud {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      display: flex;
+      align-items: center;
+      gap: 16px;
+      padding: 10px 20px;
+      border-radius: 999px;
+      background: rgba(35, 34, 31, 0.22);
+      backdrop-filter: blur(14px);
+      -webkit-backdrop-filter: blur(14px);
+      border: 1px solid rgba(244, 239, 230, 0.18);
+      z-index: 10;
+      color: var(--cream);
+      transition: all 0.35s ease;
+    }
+    .hud.light-ui {
+      background: rgba(63, 74, 62, 0.1);
+      border-color: rgba(63, 74, 62, 0.2);
+      color: var(--charcoal);
+    }
+    .btn {
+      background: var(--amber);
+      color: var(--cream);
+      border: none;
+      padding: 8px 16px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      letter-spacing: 0.04em;
+      cursor: pointer;
+      transition: transform 0.15s ease, opacity 0.2s ease;
+    }
+    .btn:hover { opacity: 0.92; }
+    .btn:active { transform: scale(0.96); }
+    .btn-ghost {
+      background: rgba(244, 239, 230, 0.14);
+      color: inherit;
+    }
+    .hud.light-ui .btn-ghost {
+      background: rgba(63, 74, 62, 0.12);
+    }
+    .control-group {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 12px;
+    }
+    input[type="range"] {
+      accent-color: var(--amber);
+      width: 95px;
+      cursor: pointer;
+    }
+    .swatches {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      padding-left: 8px;
+      border-left: 1px solid rgba(150, 150, 150, 0.3);
+    }
+    .swatch {
+      width: 18px;
+      height: 18px;
+      border-radius: 50%;
+      cursor: pointer;
+      border: 1px solid rgba(255,255,255,0.35);
+      transition: transform 0.2s ease;
+    }
+    .swatch.active {
+      transform: scale(1.2);
+      box-shadow: 0 0 0 2px var(--amber);
+    }
+  </style>
+</head>
+<body>
+  <canvas id="scene"></canvas>
+
+  <div id="hud" class="hud">
+    <button id="gustBtn" class="btn">Soprar Brisa</button>
+    <button id="resetBtn" class="btn btn-ghost">Florescer</button>
+    <div class="control-group">
+      <span>Vento</span>
+      <input id="windRange" type="range" min="0.15" max="2.2" step="0.05" value="0.75" />
+    </div>
+    <div class="swatches">
+      <button class="swatch active" data-theme="moss" title="Verde Musgo (#3F4A3E)" style="background:#3F4A3E;"></button>
+      <button class="swatch" data-theme="cream" title="Creme Editorial (#F4EFE6)" style="background:#F4EFE6; border-color:rgba(0,0,0,0.25);"></button>
+      <button class="swatch" data-theme="charcoal" title="Carvão (#23221F)" style="background:#23221F;"></button>
+      <button class="swatch" data-theme="amber" title="Âmbar (#BD824E)" style="background:#BD824E;"></button>
+    </div>
+  </div>
+
+  <script>
+    const canvas = document.getElementById('scene');
+    const ctx = canvas.getContext('2d');
+    const windRange = document.getElementById('windRange');
+    const hud = document.getElementById('hud');
+
+    const THEMES = {
+      moss: {
+        bg: '#3F4A3E',
+        pappusPrimary: 'rgba(244, 239, 230, 0.94)',
+        pappusSecondary: 'rgba(244, 239, 230, 0.56)',
+        beak: 'rgba(244, 239, 230, 0.72)',
+        achene: '#BD824E',
+        stemMain: '#283027',
+        stemHighlight: 'rgba(244, 239, 230, 0.32)',
+        receptacleOuter: '#BD824E',
+        uiLight: false
+      },
+      cream: {
+        bg: '#F4EFE6',
+        pappusPrimary: 'rgba(63, 74, 62, 0.86)',
+        pappusSecondary: 'rgba(63, 74, 62, 0.46)',
+        beak: 'rgba(63, 74, 62, 0.65)',
+        achene: '#BD824E',
+        stemMain: '#3F4A3E',
+        stemHighlight: 'rgba(189, 130, 78, 0.45)',
+        receptacleOuter: '#BD824E',
+        uiLight: true
+      },
+      charcoal: {
+        bg: '#23221F',
+        pappusPrimary: 'rgba(244, 239, 230, 0.95)',
+        pappusSecondary: 'rgba(244, 239, 230, 0.52)',
+        beak: 'rgba(244, 239, 230, 0.70)',
+        achene: '#BD824E',
+        stemMain: '#3F4A3E',
+        stemHighlight: 'rgba(189, 130, 78, 0.38)',
+        receptacleOuter: '#BD824E',
+        uiLight: false
+      },
+      amber: {
+        bg: '#BD824E',
+        pappusPrimary: 'rgba(244, 239, 230, 0.96)',
+        pappusSecondary: 'rgba(244, 239, 230, 0.58)',
+        beak: 'rgba(244, 239, 230, 0.76)',
+        achene: '#23221F',
+        stemMain: '#23221F',
+        stemHighlight: 'rgba(244, 239, 230, 0.30)',
+        receptacleOuter: '#3F4A3E',
+        uiLight: false
+      }
+    };
+
+    let currentTheme = THEMES.moss;
+    let width = window.innerWidth;
+    let height = window.innerHeight;
+    let dpr = Math.min(window.devicePixelRatio || 1, 2);
+    let time = 0;
+
+    let gustImpulse = 0;
+    let stemAngle = 0;
+    let stemVel = 0;
+    let bloomScale = 1;
+    let pointer = { x: -999, y: -999, active: false };
+
+    const TOTAL_SEEDS = 180;
+    let seeds = [];
+
+    const noise = (x, y, z = 0) => (
+      Math.sin(x * 1.25 + y * 0.75 + z * 0.85) +
+      Math.cos(x * 0.65 - y * 1.35 + z * 1.15) +
+      Math.sin((x + y) * 0.45 - z * 0.6)
+    ) / 3;
+
+    function resize() {
+      width = window.innerWidth;
+      height = window.innerHeight;
+      canvas.width = width * dpr;
+      canvas.height = height * dpr;
+      ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    }
+
+    function initSeeds() {
+      seeds = [];
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+      for (let i = 0; i < TOTAL_SEEDS; i++) {
+        const y = 1 - (i / (TOTAL_SEEDS - 1)) * 1.86;
+        const r = Math.sqrt(Math.max(0, 1 - y * y));
+        const theta = goldenAngle * i;
+        const nx = Math.cos(theta) * r;
+        const ny = y;
+        const nz = Math.sin(theta) * r;
+
+        const bristleCount = 16 + (i % 6);
+        const bristles = [];
+        for (let b = 0; b < bristleCount; b++) {
+          const frac = b / (bristleCount - 1) - 0.5;
+          bristles.push({
+            spread: frac * 1.25 + (Math.random() - 0.5) * 0.09,
+            len: 0.86 + Math.random() * 0.32,
+            curve: (Math.random() - 0.5) * 0.22
+          });
+        }
+
+        seeds.push({
+          nx, ny, nz,
+          beakLength: 36 + (i % 8) * 2.2,
+          pappusRadius: 15 + (i % 5) * 1.8,
+          attached: true,
+          resistance: 0.35 + (1 - (nx * 0.65 - ny * 0.35)) * 0.55 + Math.random() * 0.35,
+          x: 0, y: 0, z: nz,
+          vx: 0, vy: 0, vz: 0,
+          angle: Math.atan2(ny, nx),
+          angVel: 0,
+          scale: 1,
+          opacity: 1,
+          swayPhase: Math.random() * Math.PI * 2,
+          bristles
+        });
+      }
+    }
+
+    function render() {
+      time += 0.015;
+      const baseWind = parseFloat(windRange.value);
+      gustImpulse *= 0.965;
+      if (bloomScale < 1) bloomScale = Math.min(1, bloomScale + 0.03);
+
+      const ambientGust = Math.max(0, Math.sin(time * 0.6) * Math.cos(time * 0.25) - 0.32) * 0.85;
+      const effectiveWind = baseWind + gustImpulse + ambientGust;
+
+      const targetAngle = Math.min(0.42, effectiveWind * 0.135 + Math.sin(time * 1.8) * 0.03);
+      stemVel = (stemVel + (targetAngle - stemAngle) * 0.08) * 0.86;
+      stemAngle += stemVel;
+
+      const baseX = width * 0.25;
+      const baseY = height + 20;
+      const stemLen = height * 0.52;
+      const headX = baseX + Math.sin(stemAngle) * stemLen;
+      const headY = baseY - Math.cos(stemAngle) * stemLen;
+
+      // Pure flat matte background
+      ctx.fillStyle = currentTheme.bg;
+      ctx.fillRect(0, 0, width, height);
+
+      // Update seed physics
+      let detachedCount = 0;
+      for (const s of seeds) {
+        if (s.attached) {
+          let pForce = 0;
+          if (pointer.active) {
+            const dist = Math.hypot(s.x - pointer.x, s.y - pointer.y);
+            if (dist < 110) pForce = ((110 - dist) / 110) * 0.85;
+          }
+          const localWind = effectiveWind * (0.6 + 0.5 * noise(s.nx * 2, s.ny * 2, time)) + pForce;
+          if (localWind > s.resistance && detachedCount < 3 && bloomScale > 0.95) {
+            s.attached = false;
+            detachedCount++;
+            s.vx = Math.cos(s.angle) * 1.0 + effectiveWind * (0.95 + Math.random() * 0.65);
+            s.vy = Math.sin(s.angle) * 0.75 - (0.4 + Math.random() * 0.45);
+            s.vz = (Math.random() - 0.5) * 0.012;
+          }
+        } else {
+          const cx = noise(s.x * 0.006, s.y * 0.006, time * 0.55);
+          const cy = noise(s.y * 0.006 + 10, s.x * 0.006, time * 0.55);
+          s.vx += ((0.8 + effectiveWind * 1.5 + cx * 1.0) - s.vx) * 0.04;
+          s.vy += ((-0.22 + cy * 0.9 + Math.sin(time * 1.7 + s.swayPhase) * 0.28) - s.vy) * 0.04;
+          s.x += s.vx;
+          s.y += s.vy;
+          s.z = Math.max(-0.85, Math.min(1.35, s.z + s.vz));
+          s.scale = 0.78 + (s.z + 1) * 0.22;
+
+          const targetAng = -Math.PI * 0.38 + Math.sin(time * 2.1 + s.swayPhase) * 0.2 + s.vx * 0.07;
+          let diff = targetAng - s.angle;
+          while (diff > Math.PI) diff -= Math.PI * 2;
+          while (diff < -Math.PI) diff += Math.PI * 2;
+          s.angVel = (s.angVel + diff * 0.04) * 0.88;
+          s.angle += s.angVel;
+
+          if (s.x > width + 80 || s.y < -80 || s.y > height + 80) {
+            s.x = -40;
+            s.y = height * (0.15 + Math.random() * 0.7);
+          }
+        }
+      }
+
+      const sorted = [...seeds].sort((a, b) => a.z - b.z);
+      const drawOneSeed = (s) => {
+        let ax, ay, dx, dy, alpha, sc;
+        if (s.attached) {
+          const rot = stemAngle * 0.65 + Math.sin(time * 1.6 + s.swayPhase) * 0.032;
+          const rx = s.nx * Math.cos(rot) - s.ny * Math.sin(rot);
+          const ry = s.nx * Math.sin(rot) + s.ny * Math.cos(rot);
+          ax = headX + rx * 11.5 * bloomScale;
+          ay = headY + ry * 11.5 * bloomScale;
+          const bend = (baseWind * 0.085 + gustImpulse * 0.13) * (0.5 + 0.5 * Math.max(0, ry + 0.5));
+          const ba = Math.atan2(ry, rx);
+          dx = Math.cos(ba) + bend;
+          dy = Math.sin(ba) - bend * 0.18;
+          const n = Math.hypot(dx, dy) || 1;
+          dx /= n; dy /= n;
+          alpha = 0.36 + (s.nz + 1) * 0.32 + (1 - Math.abs(s.nz)) * 0.22;
+          sc = (0.82 + (s.nz + 1) * 0.12) * bloomScale;
+          s.x = ax; s.y = ay; s.angle = Math.atan2(dy, dx);
+        } else {
+          ax = s.x; ay = s.y;
+          dx = Math.cos(s.angle); dy = Math.sin(s.angle);
+          alpha = s.opacity; sc = s.scale;
+        }
+
+        const tx = ax + dx * s.beakLength * sc;
+        const ty = ay + dy * s.beakLength * sc;
+        ctx.save();
+        ctx.globalAlpha = Math.max(0, Math.min(1, alpha));
+        ctx.strokeStyle = currentTheme.achene;
+        ctx.lineWidth = 2.1 * sc;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(ax, ay);
+        ctx.lineTo(ax + dx * 4.0 * sc, ay + dy * 4.0 * sc);
+        ctx.stroke();
+
+        ctx.strokeStyle = currentTheme.beak;
+        ctx.lineWidth = 0.7 * sc;
+        ctx.beginPath();
+        ctx.moveTo(ax + dx * 3.8 * sc, ay + dy * 3.8 * sc);
+        ctx.lineTo(tx, ty);
+        ctx.stroke();
+
+        const baseAng = Math.atan2(dy, dx);
+        const pr = s.pappusRadius * sc;
+        ctx.lineWidth = 0.58 * sc;
+        for (let i = 0; i < s.bristles.length; i++) {
+          const br = s.bristles[i];
+          const a = baseAng + br.spread * (s.attached ? 0.76 : 0.94);
+          const r = pr * br.len;
+          ctx.strokeStyle = i % 2 === 0 ? currentTheme.pappusPrimary : currentTheme.pappusSecondary;
+          ctx.beginPath();
+          ctx.moveTo(tx, ty);
+          ctx.quadraticCurveTo(
+            tx + Math.cos(a + br.curve) * r * 0.55,
+            ty + Math.sin(a + br.curve) * r * 0.55,
+            tx + Math.cos(a) * r,
+            ty + Math.sin(a) * r
+          );
+          ctx.stroke();
+        }
+        ctx.restore();
+      };
+
+      for (const s of sorted) if (s.z < 0) drawOneSeed(s);
+
+      // Clean Stem & Receptacle
+      ctx.save();
+      const ctrlX = baseX + (headX - baseX) * 0.42 - 18;
+      const ctrlY = baseY - (baseY - headY) * 0.55;
+      ctx.strokeStyle = currentTheme.stemMain;
+      ctx.lineWidth = 5.2;
+      ctx.lineCap = 'round';
+      ctx.beginPath();
+      ctx.moveTo(baseX, baseY);
+      ctx.quadraticCurveTo(ctrlX, ctrlY, headX, headY);
+      ctx.stroke();
+
+      ctx.strokeStyle = currentTheme.stemHighlight;
+      ctx.lineWidth = 1.2;
+      ctx.beginPath();
+      ctx.moveTo(baseX - 1.5, baseY);
+      ctx.quadraticCurveTo(ctrlX - 1.5, ctrlY, headX - 1, headY);
+      ctx.stroke();
+
+      ctx.fillStyle = currentTheme.receptacleOuter;
+      ctx.beginPath();
+      ctx.arc(headX, headY, 11 * bloomScale, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.restore();
+
+      for (const s of sorted) if (s.z >= 0) drawOneSeed(s);
+
+      requestAnimationFrame(render);
+    }
+
+    window.addEventListener('resize', resize);
+    window.addEventListener('mousemove', e => {
+      pointer.x = e.clientX;
+      pointer.y = e.clientY;
+      pointer.active = true;
+    });
+    window.addEventListener('click', (e) => {
+      if (!e.target.closest('.hud')) gustImpulse = Math.min(2.5, gustImpulse + 1.5);
+    });
+    document.getElementById('gustBtn').addEventListener('click', () => {
+      gustImpulse = Math.min(2.5, gustImpulse + 1.75);
+    });
+    document.getElementById('resetBtn').addEventListener('click', () => {
+      bloomScale = 0.15;
+      gustImpulse = 0;
+      initSeeds();
+    });
+
+    document.querySelectorAll('.swatch').forEach(btn => {
+      btn.addEventListener('click', () => {
+        const key = btn.getAttribute('data-theme');
+        if (THEMES[key]) {
+          currentTheme = THEMES[key];
+          document.body.style.backgroundColor = currentTheme.bg;
+          hud.classList.toggle('light-ui', currentTheme.uiLight);
+        }
+        document.querySelectorAll('.swatch').forEach(b => b.classList.remove('active'));
+        btn.classList.add('active');
+      });
+    });
+
+    resize();
+    initSeeds();
+    requestAnimationFrame(render);
+  </script>
+</body>
+</html>
