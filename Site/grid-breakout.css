@@ -1,0 +1,226 @@
+/* ==========================================================================
+   ETAPA 3 — QUEBRA DE GRID INSTITUCIONAL
+   ==========================================================================
+   O QUE MUDOU E POR QUÊ (mapeado direto ao diagnóstico):
+
+   1. ESCALA TIPOGRÁFICA MUITO MAIS DRAMÁTICA
+      H2 saía de 2.25rem a 3.45rem — próximo demais do corpo de texto
+      (~1.1rem), sem contraste editorial real. Agora vai de 2.6rem a
+      5.4rem. Revistas e editoriais premiados usam saltos de escala
+      grandes entre título e corpo — é isso que cria hierarquia dramática
+      em vez de "tudo do mesmo tamanho, só em negrito diferente".
+
+   2. SEÇÃO "SOBRE ANA LIMA" GANHA SANGRAMENTO E SOBREPOSIÇÃO REAL
+      Na v1, a foto ficava contida dentro de uma "prancha" com padding,
+      dentro do grid de 1360px. Agora a foto sangra até a borda esquerda
+      da viewport (rompe o container) e o bloco de texto se sobrepõe
+      fisicamente por cima dela em telas grandes, com z-index e uma
+      leve sombra — isso cria profundidade real, não simulada por CSS
+      de sombra apenas.
+
+   3. SEÇÃO "PILARES" GANHA UM NÚMERO GIGANTE DE FUNDO (SANGRAMENTO)
+      Numerais 01/02/03 eram pequenos e discretos. Agora ganham uma
+      versão XL sangrando atrás do texto de cada coluna — técnica clássica
+      de editorial impresso (Kinfolk, revistas de arquitetura) que dá
+      peso visual sem adicionar elementos novos.
+
+   4. RITMO VERTICAL VARIADO ENTRE SEÇÕES
+      Na v1, .editorial-section tinha o mesmo padding vertical sempre
+      (clamp 88px-140px) para todas as seções. Isso cria monotonia de
+      ritmo ao rolar a página. Agora cada seção tem um padding vertical
+      ligeiramente diferente, e a seção de "Para Quem" ganha uma margem
+      assimétrica que desalinha propositalmente da grid central.
+
+   5. PULLQUOTE COM TIPOGRAFIA MUITO MAIOR E POSICIONAMENTO OUSADO
+      O pullquote da seção "Abordagem" sai de max 1.58rem para poder
+      chegar a 2.4rem em telas grandes, e ganha a opção de sangrar para
+      a margem esquerda usando um recuo negativo.
+
+   NADA AQUI MEXE NO HERO (Etapa 2) NEM NO CANVAS (Etapa 1).
+   ========================================================================== */
+
+/* --------------------------------------------------------------------
+   1. ESCALA TIPOGRÁFICA DRAMÁTICA
+   -------------------------------------------------------------------- */
+.editorial-h2 {
+  font-size: clamp(2.6rem, 5.2vw, 5.4rem);
+  line-height: 1.02;
+  letter-spacing: -0.03em;
+  margin-bottom: 2rem;
+}
+
+.closing-h2 {
+  font-size: clamp(2.8rem, 6vw, 5.8rem);
+  line-height: 1.0;
+}
+
+/* --------------------------------------------------------------------
+   2. RITMO VERTICAL VARIADO (cada seção com respiro diferente)
+   -------------------------------------------------------------------- */
+#abordagem.editorial-section {
+  padding-top: clamp(100px, 11vw, 160px);
+  padding-bottom: clamp(70px, 8vw, 110px);
+}
+
+#pilares.editorial-section {
+  padding-top: clamp(60px, 7vw, 90px);
+  padding-bottom: clamp(100px, 11vw, 150px);
+}
+
+#para-quem.editorial-section {
+  padding-top: clamp(110px, 12vw, 170px);
+  padding-bottom: clamp(90px, 10vw, 130px);
+}
+
+#processo.editorial-section {
+  padding-top: clamp(80px, 9vw, 120px);
+  padding-bottom: clamp(80px, 9vw, 120px);
+}
+
+/* Seção "Para Quem" desalinha propositalmente da grid central —
+   puxa a coluna de texto um pouco para fora do centro em telas grandes */
+@media (min-width: 1400px) {
+  #para-quem .recognition-layout {
+    margin-left: -3vw;
+  }
+}
+
+/* --------------------------------------------------------------------
+   3. SEÇÃO "SOBRE ANA LIMA" — SANGRAMENTO E SOBREPOSIÇÃO REAL
+   -------------------------------------------------------------------- */
+#sobre-ana.editorial-section {
+  max-width: none;
+  padding-left: 0;
+  padding-right: 0;
+  overflow: visible;
+}
+
+.about-grid {
+  display: grid;
+  grid-template-columns: minmax(280px, 42vw) 1fr;
+  gap: 0;
+  align-items: start;
+  max-width: none;
+  position: relative;
+}
+
+/* A prancha da foto sangra até a borda esquerda real da viewport,
+   rompendo o container de 1360px que envolve o resto do site */
+.portrait-gallery-plate {
+  position: relative;
+  max-width: none;
+  width: 100%;
+  margin: 0;
+  padding: 0;
+  background-color: transparent;
+  border: none;
+}
+
+.portrait-image-box {
+  aspect-ratio: auto;
+  height: clamp(480px, 62vw, 780px);
+  margin-left: calc(-1 * max(5vw, (100vw - 1360px) / 2));
+}
+
+@media (max-width: 960px) {
+  .portrait-image-box {
+    margin-left: 0;
+    height: 60vh;
+  }
+}
+
+.portrait-caption {
+  margin: 16px 5vw 0 calc(-1 * max(5vw, (100vw - 1360px) / 2) + 5vw);
+  border-top: 1px solid var(--rule-light);
+  max-width: 460px;
+}
+
+@media (max-width: 960px) {
+  .portrait-caption {
+    margin: 16px 0 0;
+  }
+}
+
+/* O bloco de texto se sobrepõe fisicamente sobre a foto em telas grandes:
+   recuo negativo + z-index + fundo sólido com sombra suave para separar
+   das camadas visuais sem depender só de espaçamento */
+@media (min-width: 961px) {
+  #sobre-ana .about-grid > div:last-child {
+    position: relative;
+    z-index: 10;
+    margin-left: -7vw;
+    margin-top: 64px;
+    background-color: var(--bg-linen);
+    padding: 48px clamp(32px, 4vw, 64px) 24px 48px;
+    box-shadow: -24px 24px 64px -32px rgba(28, 43, 34, 0.22);
+  }
+}
+
+@media (min-width: 961px) and (max-width: 1200px) {
+  #sobre-ana .about-grid > div:last-child {
+    margin-left: -4vw;
+    padding-left: 32px;
+  }
+}
+
+/* --------------------------------------------------------------------
+   4. SEÇÃO "PILARES" — NUMERAIS GIGANTES SANGRANDO NO FUNDO
+   -------------------------------------------------------------------- */
+.pillar-column {
+  position: relative;
+  overflow: visible;
+}
+
+.pillar-roman {
+  position: relative;
+  z-index: 2;
+}
+
+/* Numeral XL decorativo atrás do conteúdo de cada pilar — técnica de
+   editorial impresso, não adiciona nenhum elemento HTML novo (usa a
+   própria .pillar-roman via ::before, duplicando o número visualmente
+   maior e mais claro no fundo) */
+.pillar-column::before {
+  content: attr(data-pillar-number);
+  position: absolute;
+  top: -18px;
+  left: -6px;
+  font-family: var(--font-serif);
+  font-style: italic;
+  font-size: clamp(5.5rem, 9vw, 9rem);
+  font-weight: 500;
+  color: var(--anchor-moss);
+  opacity: 0.06;
+  line-height: 1;
+  z-index: 1;
+  pointer-events: none;
+  user-select: none;
+}
+
+.pillar-title,
+.pillar-body {
+  position: relative;
+  z-index: 2;
+}
+
+/* --------------------------------------------------------------------
+   5. PULLQUOTE MAIOR E COM RECUO NEGATIVO EM TELAS GRANDES
+   -------------------------------------------------------------------- */
+.editorial-pullquote {
+  font-size: clamp(1.5rem, 2.6vw, 2.4rem);
+  line-height: 1.28;
+  margin-top: 2.8rem;
+}
+
+@media (min-width: 1300px) {
+  .editorial-pullquote {
+    margin-left: -1.5rem;
+  }
+}
+
+/* --------------------------------------------------------------------
+   6. TABELA DE PROCESSO — PRIMEIRA COLUNA COM ESCALA MAIOR
+   -------------------------------------------------------------------- */
+.ledger-col-stage {
+  font-size: clamp(1.6rem, 2.4vw, 2.15rem);
+}
