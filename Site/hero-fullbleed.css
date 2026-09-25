@@ -62,12 +62,18 @@
 .hero-video-frame {
   position: absolute;
   inset: 0;
+  z-index: 1;
   width: 100%;
   height: 100%;
   border-radius: 0;
   -webkit-mask-image: none;
   mask-image: none;
-  background-color: var(--anchor-moss);
+  background-color: #0a0a0a;
+  transition: background-color 1.8s var(--ease-cinematic);
+}
+
+.hero-video-frame.video-completed {
+  background-color: var(--bg-linen);
 }
 
 .hero-video-frame video {
@@ -87,32 +93,28 @@
   pointer-events: none;
 }
 
-/* Substitui o .hero-video-warm-wash: agora é um gradiente direcional
-   que escurece a base (onde o texto fica) e a borda superior (para o
-   header ficar legível), preservando o centro-superior do vídeo limpo */
+/* Gradiente muito mais discreto: só o suficiente para o texto na base
+   ser legível, sem lavar o vídeo com uma cor dominante */
 .hero-video-warm-wash {
   position: absolute;
   inset: 0;
   pointer-events: none;
   background:
     linear-gradient(180deg,
-      rgba(28, 43, 34, 0.55) 0%,
-      rgba(28, 43, 34, 0.05) 22%,
-      rgba(28, 43, 34, 0.0) 55%,
-      rgba(28, 43, 34, 0.30) 78%,
-      rgba(28, 43, 34, 0.82) 100%
+      rgba(0, 0, 0, 0.20) 0%,
+      rgba(0, 0, 0, 0.0) 16%,
+      rgba(0, 0, 0, 0.0) 58%,
+      rgba(0, 0, 0, 0.28) 82%,
+      rgba(0, 0, 0, 0.42) 100%
     );
 }
 
-/* Quando o vídeo termina e revela o linho cru por trás (dente-de-leão
-   assume via canvas), o wash muda para tons do papel, não mais escuro */
 .hero-video-frame.video-completed ~ .hero-video-warm-wash,
 .hero-video-frame.video-completed + .hero-video-warm-wash,
 .hero-video-frame.video-completed .hero-video-warm-wash {
   background:
     linear-gradient(180deg,
-      rgba(247, 245, 240, 0.15) 0%,
-      rgba(247, 245, 240, 0.0) 30%,
+      rgba(247, 245, 240, 0.0) 0%,
       rgba(247, 245, 240, 0.0) 55%,
       rgba(247, 245, 240, 0.25) 78%,
       rgba(247, 245, 240, 0.92) 100%
@@ -258,6 +260,65 @@
 .hero-subtitle { animation-delay: 0.42s; }
 .hero-actions { animation-delay: 0.54s; }
 .hero-authority-microcopy { animation-delay: 0.64s; }
+
+/* Quando o vídeo termina (.video-completed) e o fundo dissolve para o linho
+   claro (#F7F5F0) onde a flor do canvas aparece, transiciona a tipografia
+   para os tons escuros editoriais para manter 100% de contraste */
+.hero-section:has(.video-completed) .hero-h1 {
+  color: var(--anchor-moss);
+  text-shadow: none;
+  transition: color 1.6s ease, text-shadow 1.6s ease;
+}
+
+.hero-section:has(.video-completed) .hero-h1 .highlight-consciousness,
+.hero-section:has(.video-completed) .hero-eyebrow {
+  color: var(--accent-terracotta);
+  transition: color 1.6s ease;
+}
+
+.hero-section:has(.video-completed) .hero-eyebrow::before {
+  background-color: var(--accent-terracotta);
+  transition: background-color 1.6s ease;
+}
+
+.hero-section:has(.video-completed) .hero-subtitle {
+  color: var(--text-basalt);
+  text-shadow: none;
+  transition: color 1.6s ease, text-shadow 1.6s ease;
+}
+
+.hero-section:has(.video-completed) .hero-authority-microcopy {
+  color: var(--text-basalt-muted);
+  border-top-color: var(--rule-medium);
+  transition: color 1.6s ease, border-color 1.6s ease;
+}
+
+.hero-section:has(.video-completed) .hero-authority-microcopy strong {
+  color: var(--anchor-moss);
+  transition: color 1.6s ease;
+}
+
+.hero-section:has(.video-completed) .hero-cta-primary {
+  background-color: var(--anchor-moss);
+  color: var(--bg-linen);
+  border-color: var(--anchor-moss);
+}
+
+body:has(.hero-video-frame.video-completed) .site-header {
+  background-color: rgba(247, 245, 240, 0.88);
+  border-bottom-color: var(--rule-light);
+}
+
+body:has(.hero-video-frame.video-completed) .site-header .brand-name,
+body:has(.hero-video-frame.video-completed) .site-header .brand-crp,
+body:has(.hero-video-frame.video-completed) .site-header .nav-links a {
+  color: var(--anchor-moss);
+}
+
+body:has(.hero-video-frame.video-completed) .site-header .header-cta {
+  color: var(--anchor-moss);
+  border-color: var(--anchor-moss);
+}
 
 @media (max-width: 980px) {
   .hero-h1 {
