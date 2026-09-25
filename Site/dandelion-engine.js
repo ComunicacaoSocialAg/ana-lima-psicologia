@@ -366,6 +366,7 @@
 
   window.addEventListener('scroll', () => {
     scrollY = window.scrollY || 0;
+    document.getElementById('siteHeader')?.classList.toggle('scrolled', scrollY > 48);
     updateProtectedRects();
   }, { passive: true });
 

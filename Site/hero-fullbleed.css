@@ -1,0 +1,271 @@
+/* ==========================================================================
+   ETAPA 2 — HERO FULL-BLEED (SUBSTITUI A COMPOSIÇÃO DE 2 COLUNAS)
+   ==========================================================================
+   O QUE MUDOU E POR QUÊ:
+
+   1. VÍDEO FULL-BLEED (100vw x 100dvh) EM VEZ DE 56% DA LARGURA
+      Sendo filmagem real, o vídeo tem muito mais força como fundo dominante
+      do que dividindo espaço com uma coluna de texto. Referências Awwwards
+      de hero quase sempre usam a mídia como camada de base, com texto
+      sobreposto — cria imersão imediata em vez de "site institucional com
+      vídeo ilustrativo ao lado".
+
+   2. OVERLAY DE GRADIENTE PARA CONTRASTE, NÃO PARA ESCONDER O VÍDEO
+      Um gradiente direcional (mais escuro/saturado onde o texto fica, mais
+      transparente no resto) garante legibilidade sem lavar a cena inteira.
+      Isso é mais sofisticado que uma camada sólida semi-transparente por
+      cima de tudo.
+
+   3. TEXTO REPOSICIONADO NA BASE INFERIOR ESQUERDA
+      Composição mais editorial/cinematográfica: texto ancorado embaixo,
+      como em pôsteres de cinema e cover de revista, em vez de centralizado
+      verticalmente como um site de SaaS. Isso também dá ao vídeo o
+      protagonismo total na parte superior do frame.
+
+   4. ESCALA TIPOGRÁFICA MUITO MAIS DRAMÁTICA
+      H1 sobe de ~3.85rem máx para ~6.2rem máx em telas grandes. Contraste
+      de escala é o que faz um hero parecer "editorial premiado" em vez de
+      "institucional seguro".
+
+   5. REVEAL CONCENTRADO EM VEZ DE CASCATA LENTA
+      Na v1, cada elemento (eyebrow, h1 linha 1, h1 destaque, subtítulo,
+      CTA, microcopy) tinha delay crescente somando até ~1.45s até tudo
+      aparecer. Agora o delay total cai para ~0.65s — o impacto acontece
+      quase de uma vez, como um corte de cinema, não uma cortina lenta.
+
+   AJUSTE MANUAL NECESSÁRIO APÓS APLICAR:
+   Verificar a variável --hero-video-focus abaixo. Ela controla o
+   object-position do vídeo. Se o enquadramento cortar algo importante da
+   cena (rosto, elemento central), ajustar os valores de porcentagem
+   (formato "horizontal vertical", ex: "50% 30%" foca mais no topo).
+   ========================================================================== */
+
+:root {
+  /* Ajustar aqui se o corte do vídeo em full-bleed não enquadrar bem */
+  --hero-video-focus: center 38%;
+}
+
+.hero-section {
+  position: relative;
+  min-height: 100dvh;
+  width: 100%;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  border-bottom: none;
+  display: block;
+}
+
+/* Vídeo cobre o hero inteiro, sem máscara radial (essa técnica fazia
+   sentido na composição de 56%; em full-bleed ela cortaria o vídeo de
+   forma estranha, então foi removida) */
+.hero-video-frame {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  border-radius: 0;
+  -webkit-mask-image: none;
+  mask-image: none;
+  background-color: var(--anchor-moss);
+}
+
+.hero-video-frame video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  object-position: var(--hero-video-focus);
+  opacity: 1;
+  filter: saturate(0.9) contrast(1.02) brightness(0.96);
+  transform: scale(1);
+  transition: opacity 2.2s var(--ease-cinematic), filter 2.2s ease;
+}
+
+.hero-video-frame.video-completed video {
+  opacity: 0;
+  filter: blur(14px) saturate(0.7) brightness(1.05);
+  pointer-events: none;
+}
+
+/* Substitui o .hero-video-warm-wash: agora é um gradiente direcional
+   que escurece a base (onde o texto fica) e a borda superior (para o
+   header ficar legível), preservando o centro-superior do vídeo limpo */
+.hero-video-warm-wash {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    linear-gradient(180deg,
+      rgba(28, 43, 34, 0.55) 0%,
+      rgba(28, 43, 34, 0.05) 22%,
+      rgba(28, 43, 34, 0.0) 55%,
+      rgba(28, 43, 34, 0.30) 78%,
+      rgba(28, 43, 34, 0.82) 100%
+    );
+}
+
+/* Quando o vídeo termina e revela o linho cru por trás (dente-de-leão
+   assume via canvas), o wash muda para tons do papel, não mais escuro */
+.hero-video-frame.video-completed ~ .hero-video-warm-wash,
+.hero-video-frame.video-completed + .hero-video-warm-wash,
+.hero-video-frame.video-completed .hero-video-warm-wash {
+  background:
+    linear-gradient(180deg,
+      rgba(247, 245, 240, 0.15) 0%,
+      rgba(247, 245, 240, 0.0) 30%,
+      rgba(247, 245, 240, 0.0) 55%,
+      rgba(247, 245, 240, 0.25) 78%,
+      rgba(247, 245, 240, 0.92) 100%
+    );
+  transition: background 1.8s var(--ease-cinematic);
+}
+
+/* --------------------------------------------------------------------
+   GRID ANTIGO REMOVIDO — o texto agora é um bloco único ancorado embaixo
+   -------------------------------------------------------------------- */
+.hero-editorial-grid {
+  position: relative;
+  z-index: 25;
+  width: 100%;
+  height: 100%;
+  min-height: 100dvh;
+  display: flex;
+  align-items: flex-end;
+  padding: 0 5vw clamp(56px, 8vw, 96px);
+  max-width: none;
+}
+
+.hero-copy-column {
+  position: relative;
+  z-index: 25;
+  max-width: 760px;
+  padding-right: 0;
+}
+
+/* Coluna do vídeo antiga não é mais usada como container de layout —
+   o vídeo agora vive direto em .hero-video-frame posicionado absoluto */
+.hero-stage-column {
+  display: contents;
+}
+
+@media (max-width: 980px) {
+  .hero-copy-column {
+    max-width: 100%;
+  }
+}
+
+/* --------------------------------------------------------------------
+   TIPOGRAFIA COM ESCALA MAIS DRAMÁTICA
+   -------------------------------------------------------------------- */
+.hero-h1 {
+  font-size: clamp(2.6rem, 6.4vw, 6.2rem);
+  line-height: 1.02;
+  letter-spacing: -0.025em;
+  color: var(--bg-linen);
+  margin-bottom: 1.3rem;
+  text-shadow: 0 2px 24px rgba(0, 0, 0, 0.18);
+}
+
+.hero-h1 .highlight-consciousness {
+  color: #E8B896; /* terracota clareado para manter contraste sobre vídeo escuro */
+}
+
+.hero-eyebrow {
+  color: #E8B896;
+  margin-bottom: 1.1rem;
+}
+
+.hero-eyebrow::before {
+  background-color: #E8B896;
+}
+
+.hero-subtitle {
+  color: rgba(247, 245, 240, 0.92);
+  font-size: clamp(1rem, 1.25vw, 1.18rem);
+  max-width: 52ch;
+  margin-bottom: 1.9rem;
+  text-shadow: 0 1px 16px rgba(0, 0, 0, 0.22);
+}
+
+.hero-authority-microcopy {
+  color: rgba(247, 245, 240, 0.75);
+  border-top-color: rgba(247, 245, 240, 0.22);
+}
+
+.hero-authority-microcopy strong {
+  color: var(--bg-linen);
+}
+
+/* Botão CTA precisa de mais presença sobre vídeo (antes era outline
+   sutil pensado para fundo claro) */
+.hero-cta-primary {
+  background-color: var(--bg-linen);
+  color: var(--anchor-moss);
+  border-color: var(--bg-linen);
+}
+
+.hero-cta-primary:hover {
+  background-color: var(--accent-terracotta);
+  border-color: var(--accent-terracotta);
+  color: var(--bg-linen);
+}
+
+/* Header fixo precisa de leitura garantida sobre o vídeo no topo —
+   o wash superior do gradiente já ajuda, mas reforça o backdrop-blur */
+.site-header {
+  background-color: rgba(28, 43, 34, 0.28);
+  border-bottom-color: rgba(247, 245, 240, 0.14);
+}
+
+.site-header.scrolled {
+  background-color: rgba(247, 245, 240, 0.95);
+  border-bottom-color: var(--rule-light);
+}
+
+.site-header .brand-name,
+.site-header .brand-crp,
+.site-header .nav-links a {
+  color: var(--bg-linen);
+  transition: color 0.4s ease;
+}
+
+.site-header .header-cta {
+  color: var(--bg-linen);
+  border-color: rgba(247, 245, 240, 0.6);
+}
+
+.site-header.scrolled .brand-name,
+.site-header.scrolled .brand-crp,
+.site-header.scrolled .nav-links a {
+  color: var(--anchor-moss);
+}
+
+.site-header.scrolled .header-cta {
+  color: var(--anchor-moss);
+  border-color: var(--anchor-moss);
+}
+
+/* --------------------------------------------------------------------
+   REVEAL CONCENTRADO — delays reduzidos para impacto quase simultâneo
+   Antes: 0.12s / 0.34s / 0.68s / 0.96s / 1.22s / 1.45s (total 1.45s)
+   Agora: 0.05s / 0.15s / 0.30s / 0.42s / 0.54s / 0.64s (total 0.64s)
+   -------------------------------------------------------------------- */
+.hero-eyebrow { animation-delay: 0.05s; }
+.hero-h1 .hero-line-1 { animation-delay: 0.15s; }
+.hero-h1 .highlight-consciousness {
+  animation-delay: 0.30s, 0.85s; /* segunda animação (underline) mantém leve atraso proposital */
+}
+.hero-subtitle { animation-delay: 0.42s; }
+.hero-actions { animation-delay: 0.54s; }
+.hero-authority-microcopy { animation-delay: 0.64s; }
+
+@media (max-width: 980px) {
+  .hero-h1 {
+    font-size: clamp(2.1rem, 8vw, 3.2rem);
+  }
+  :root {
+    /* Em mobile, muitos vídeos verticais/retrato enquadram melhor
+       priorizando o topo da cena — ajustar se necessário */
+    --hero-video-focus: center 30%;
+  }
+}
