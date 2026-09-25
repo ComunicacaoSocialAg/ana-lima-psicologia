@@ -1,46 +1,35 @@
 /* ==========================================================================
-   MOTOR DE CANVAS — DENTE-DE-LEÃO GUIA (v2 — ORÇAMENTO DE PERFORMANCE)
+   MOTOR DE CANVAS — DENTE-DE-LEÃO GUIA (v3 — METAMORFOSE + PERFORMANCE)
    ==========================================================================
-   O QUE MUDOU EM RELAÇÃO À V1 (motivo de cada corte):
+   HISTÓRICO: a v1 original tinha 3 flores completas + 92 sementes
+   companheiras + metamorfose flor⇄semente, e travava (custo de
+   trigonometria 3D recalculada a cada frame para ~450 objetos). A v2
+   (Etapa 1 deste projeto) cortou a metamorfose inteira para resolver
+   performance — corte grande demais, pois a metamorfose é a identidade
+   central do site. Esta v3 restaura a metamorfose como guia narrativo
+   real, com uma arquitetura de performance diferente:
 
-   1. DE 3 DENTE-DE-LEÕES → 1 DENTE-DE-LEÃO + SEMENTES ATMOSFÉRICAS LEVES
-      A v1 renderizava 3 flores completas (145+112+88 = 345 sementes com
-      bristles recalculados por frame) mais 92 "sementes companheiras" do
-      guia metamórfico mais partículas de fundo. Isso é ~450+ objetos com
-      trigonometria pesada por frame, 60x por segundo. Nenhum dispositivo
-      médio aguenta isso a 60fps. Agora: 1 flor com 60 sementes fixas +
-      até 24 sementes atmosféricas soltas = ~84 objetos no pior caso.
+   1. UMA ÚNICA ENTIDADE (não 3 flores simultâneas) que se transforma
+      entre "dente-de-leão completo" e "semente-guia única" — o mesmo
+      conceito da v1, sem a multiplicação por 3.
 
-   2. BRISTLES PRÉ-COMPUTADOS, NÃO RECRIADOS
-      A v1 já pré-computava os bristles na criação (isso estava certo),
-      mas recalculava listas inteiras de "companion seeds" (92 objetos)
-      toda vez que a metamorfose mudava de direção. Removido: a metamorfose
-      "flor ⇄ semente única" inteira. Fica só UM estado visual coerente
-      (flor que guia o scroll), sem alternância de forma — isso também
-      resolve o problema de "motion sem propósito narrativo" apontado
-      no diagnóstico.
+   2. COROA DE 45 SEMENTES (v1 usava 92) — ainda parece uma coroa cheia
+      visualmente (a esfera de Fibonacci com 45 pontos já lê como "flor
+      densa"), mas quase metade do custo de trigonometria por frame.
 
-   3. CANVAS PAUSA FORA DA VIEWPORT (IntersectionObserver)
-      A v1 rodava requestAnimationFrame para sempre, mesmo com o hero
-      a quilômetros de distância do scroll. Agora o loop só roda
-      enquanto a seção com o canvas está (ou pode ficar) visível.
+   3. TODA GEOMETRIA QUE NÃO MUDA É PRÉ-COMPUTADA NA CRIAÇÃO: posições
+      normalizadas da esfera de Fibonacci, ângulos de bristles, tudo
+      calculado 1x. Por frame, cada semente só recalcula sua posição
+      2D projetada (rotação simples), não a estrutura 3D inteira.
 
-   4. FPS CAP EXPLÍCITO (30fps para o motion de fundo)
-      Partículas atmosféricas não precisam de 60fps para parecerem
-      fluidas — 30fps é imperceptível para esse tipo de movimento lento
-      e corta o custo de CPU pela metade.
+   4. FPS CAP DE 30 + PAUSA FORA DA VIEWPORT/ABA OCULTA (mantido da
+      Etapa 1 — isso sozinho já corta o custo pela metade sem afetar
+      a fluidez percebida deste tipo de motion lento).
 
-   5. REDUÇÃO DE TRIGONOMETRIA POR FRAME
-      Ângulos de bristles são computados 1x na criação; por frame,
-      cada semente só recalcula posição (seno/cosseno simples), não
-      a coroa 3D inteira. O giro axial contínuo da v1 foi removido:
-      consumia CPU sem ganho perceptível de "cinematismo" e é a causa
-      do "movimento sem propósito" citado no diagnóstico.
-
-   6. RESPEITA prefers-reduced-motion E DESLIGA EM MOBILE PEQUENO
-      Canvas decorativo não deve rodar em telas <768px (custo de bateria
-      sem benefício visual real nesse breakpoint) nem quando o usuário
-      pediu menos movimento no SO.
+   5. METAMORFOSE NOS 8 PONTOS DE VIRADA (um por seção), com a transição
+      de saída do hero integrada ao fim do vídeo: a flor só começa a
+      existir quando o vídeo termina (igual v1), e a partir daí ela
+      guia a leitura alternando forma a cada seção.
    ========================================================================== */
 
 (() => {
@@ -50,8 +39,6 @@
   const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const isSmallViewport = window.innerWidth < 768;
 
-  // Corte total: não inicializa nada disso em mobile pequeno ou reduced-motion.
-  // O hero e o site inteiro já funcionam sem o canvas (ele é 100% decorativo).
   if (prefersReducedMotion || isSmallViewport) {
     canvas.style.display = 'none';
     return;
@@ -61,53 +48,33 @@
   const heroVideo = document.getElementById('heroVideo');
   const heroVideoStage = document.getElementById('heroVideoStage');
   const heroSection = document.getElementById('inicio');
+  const mainContent = document.querySelector('main') || heroSection;
 
   let width = window.innerWidth;
   let height = window.innerHeight;
-  const dpr = Math.min(window.devicePixelRatio || 1, 1.6); // 1.6 é suficiente e mais barato que 2
+  const dpr = Math.min(window.devicePixelRatio || 1, 1.6);
 
-  // --------------------------------------------------------------------
-  // CONTROLE DE FPS (30fps para o canvas decorativo)
-  // --------------------------------------------------------------------
   const TARGET_FPS = 30;
   const FRAME_BUDGET_MS = 1000 / TARGET_FPS;
   let lastFrameTime = 0;
 
-  // --------------------------------------------------------------------
-  // CONTROLE DE VIEWPORT — só anima quando pode estar visível
-  // --------------------------------------------------------------------
   let canvasIsInViewport = true;
   let rafId = null;
 
   const viewportObserver = new IntersectionObserver(
     (entries) => {
-      entries.forEach((entry) => {
-        canvasIsInViewport = entry.isIntersecting;
-      });
-      if (canvasIsInViewport && rafId === null) {
-        rafId = requestAnimationFrame(render);
-      }
+      entries.forEach((entry) => { canvasIsInViewport = entry.isIntersecting; });
+      if (canvasIsInViewport && rafId === null) rafId = requestAnimationFrame(render);
     },
     { threshold: 0 }
   );
-  // Observa o body inteiro dividido pelas seções-âncora: como o canvas é
-  // fixed e cobre a tela toda, ele "importa" enquanto qualquer parte do
-  // documento estiver na tela — ou seja, sempre, exceto se a aba estiver
-  // oculta. A otimização real de aba oculta vem do document.hidden abaixo.
-  if (heroSection) viewportObserver.observe(heroSection);
+  if (mainContent) viewportObserver.observe(mainContent);
 
   document.addEventListener('visibilitychange', () => {
-    if (document.hidden) {
-      canvasIsInViewport = false;
-    } else {
-      canvasIsInViewport = true;
-      if (rafId === null) rafId = requestAnimationFrame(render);
-    }
+    canvasIsInViewport = !document.hidden;
+    if (canvasIsInViewport && rafId === null) rafId = requestAnimationFrame(render);
   });
 
-  // --------------------------------------------------------------------
-  // ESTADO DE SCROLL E PONTEIRO (simplificado da v1)
-  // --------------------------------------------------------------------
   let scrollY = window.scrollY || 0;
   let time = 0;
 
@@ -122,20 +89,20 @@
     core: '#5A6457'
   };
 
-  const easeOutCubic = (t) => 1 - Math.pow(1 - t, 3);
+  const easeInOutCubic = (t) => (t < 0.5 ? 4 * t * t * t : 1 - Math.pow(-2 * t + 2, 3) / 2);
 
   // --------------------------------------------------------------------
-  // PROTEÇÃO DE CONTEÚDO (mantido da v1 — é o que garante que as
-  // sementes nunca cubram texto, isso funciona bem e é barato)
+  // PROTEÇÃO DE CONTEÚDO
   // --------------------------------------------------------------------
   const CONTENT_SELECTORS = [
-    '.hero-copy-column', '.editorial-h2', '.editorial-prose',
+    '.hero-copy-column', '.editorial-h2', '.editorial-prose', '.editorial-pullquote',
     '.pillar-title', '.pillar-body', '.recognition-item',
-    '.portrait-gallery-plate', '.faq-accordion'
+    '.portrait-gallery-plate', '.editorial-quote-block', '.credentials-ledger',
+    '.process-ledger-wrapper', '.faq-accordion', '.closing-inner'
   ].join(', ');
 
-  let protectedRects = [];
   let contentElements = [];
+  let protectedRects = [];
 
   function refreshContentElements() {
     contentElements = Array.from(document.querySelectorAll(CONTENT_SELECTORS));
@@ -144,26 +111,32 @@
 
   function updateProtectedRects() {
     protectedRects = [];
-    const pad = 20;
+    const padX = 22, padY = 16;
     for (const el of contentElements) {
       const r = el.getBoundingClientRect();
       if (r.bottom < -60 || r.top > height + 60 || r.width === 0) continue;
-      protectedRects.push({ left: r.left - pad, right: r.right + pad, top: r.top - pad, bottom: r.bottom + pad });
+      protectedRects.push({
+        left: r.left - padX, right: r.right + padX,
+        top: r.top - padY, bottom: r.bottom + padY,
+        cx: (r.left + r.right) * 0.5, cy: (r.top + r.bottom) * 0.5
+      });
     }
   }
 
   function avoidanceAt(x, y) {
     let pushX = 0, pushY = 0, alpha = 1;
     for (const r of protectedRects) {
-      if (x > r.left - 40 && x < r.right + 40 && y > r.top - 40 && y < r.bottom + 40) {
+      if (x > r.left - 44 && x < r.right + 44 && y > r.top - 44 && y < r.bottom + 44) {
         const inside = x > r.left && x < r.right && y > r.top && y < r.bottom;
         if (inside) {
-          const dirX = (x - (r.left + r.right) / 2) > 0 ? 1 : -1;
+          const dirX = x < r.cx ? -1 : 1;
+          const dirY = y < r.cy ? -1 : 1;
           pushX += dirX * 0.5;
-          alpha = 0.08;
+          pushY += dirY * 0.3;
+          alpha = 0.06;
         } else {
-          const dirX = x < (r.left + r.right) / 2 ? -1 : 1;
-          pushX += dirX * 0.12;
+          const dirX = x < r.cx ? -1 : 1;
+          pushX += dirX * 0.14;
         }
       }
     }
@@ -171,7 +144,7 @@
   }
 
   // --------------------------------------------------------------------
-  // BRISTLES: criados 1x, nunca recalculados por frame
+  // BRISTLES — pré-computados 1x, nunca recriados por frame
   // --------------------------------------------------------------------
   function createBristles(count) {
     const list = [];
@@ -186,138 +159,38 @@
     return list;
   }
 
-  // --------------------------------------------------------------------
-  // UMA ÚNICA FLOR (a v1 tinha 3; isso já corta o custo em ~65%)
-  // --------------------------------------------------------------------
-  const SEED_COUNT = 60; // v1 usava 145 na flor principal
-  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-
-  function createDandelion(originX, originY) {
-    const seeds = [];
-    for (let i = 0; i < SEED_COUNT; i++) {
-      const y = 1 - (i / (SEED_COUNT - 1)) * 1.88;
-      const r = Math.sqrt(Math.max(0, 1 - y * y));
-      const theta = goldenAngle * i;
-      seeds.push({
-        nx: Math.cos(theta) * r,
-        ny: y,
-        nz: Math.sin(theta) * r,
-        beakLength: 34 + (i % 7) * 2,
-        pappusRadius: 14 + (i % 5) * 1.4,
-        attached: true,
-        bristles: createBristles(11 + (i % 4)),
-        swayPhase: Math.random() * Math.PI * 2,
-        x: 0, y: 0, angle: 0, opacity: 1, scale: 1
-      });
-    }
-    return {
-      headX: originX,
-      headY: originY,
-      baseHeadX: originX,
-      baseHeadY: originY,
-      stemAngle: 0.04,
-      stemVel: 0,
-      stemLength: Math.min(height * 0.4, 300),
-      scale: 1,
-      seeds
-    };
-  }
-
-  // Sementes atmosféricas soltas (bem mais leves que a v1: só posição + 1 bristle set)
-  const MAX_FREE_SEEDS = 18; // v1 permitia até 12 + 92 companion = ~100+; agora teto real de 18
-  const freeSeeds = [];
-
-  function spawnFreeSeed(x, y) {
-    freeSeeds.push({
-      x, y,
-      vx: (Math.random() - 0.5) * 0.5,
-      vy: -0.15 - Math.random() * 0.2,
-      angle: -Math.PI / 2,
-      scale: 0.4 + Math.random() * 0.25,
-      beakLength: 22 + Math.random() * 5,
-      pappusRadius: 9 + Math.random() * 3,
-      opacity: 0.12 + Math.random() * 0.14,
-      bristles: createBristles(10)
-    });
-  }
-
-  let dandelion = null;
-  let revealed = false;
-  let revealAlpha = 0;
-
-  function getStageAnchor() {
-    if (heroVideoStage && width > 980) {
-      const r = heroVideoStage.getBoundingClientRect();
-      if (r.width > 100) return { x: r.left + r.width * 0.55, y: r.top + r.height * 0.48 };
-    }
-    return { x: width > 980 ? width * 0.72 : width * 0.7, y: height * 0.48 };
-  }
-
-  function init() {
-    const anchor = getStageAnchor();
-    dandelion = createDandelion(anchor.x, anchor.y);
-    freeSeeds.length = 0;
-    for (let i = 0; i < 8; i++) {
-      spawnFreeSeed(Math.random() * width, Math.random() * height);
-    }
-    refreshContentElements();
-  }
-
-  function reveal() {
-    if (revealed) return;
-    revealed = true;
-    heroVideoStage?.classList.add('video-completed');
-    // Libera algumas sementes soltas no momento da revelação — único gatilho
-    // narrativo de "a flor solta sementes", sem giro contínuo automático
-    for (let i = 0; i < 4; i++) {
-      spawnFreeSeed(dandelion.headX + (Math.random() - 0.5) * 40, dandelion.headY + (Math.random() - 0.5) * 40);
-    }
-  }
-
-  if (heroVideo) {
-    heroVideo.addEventListener('timeupdate', () => {
-      if (heroVideo.duration && heroVideo.currentTime >= heroVideo.duration - 1.2) reveal();
-    });
-    heroVideo.addEventListener('ended', reveal);
-    heroVideo.addEventListener('error', reveal);
-    const p = heroVideo.play();
-    if (p !== undefined) p.catch(reveal);
-  } else {
-    reveal();
-  }
-
-  function drawSeed(s, alphaMul) {
+  function drawSeedShape(x, y, angle, scale, beakLength, pappusRadius, bristles, opacity, alphaMul) {
     if (alphaMul <= 0.01) return;
-    const dx = Math.cos(s.angle), dy = Math.sin(s.angle);
-    const tx = s.x + dx * s.beakLength * s.scale;
-    const ty = s.y + dy * s.beakLength * s.scale;
+    const dx = Math.cos(angle), dy = Math.sin(angle);
+    const tx = x + dx * beakLength * scale;
+    const ty = y + dy * beakLength * scale;
 
     ctx.save();
-    ctx.globalAlpha = Math.max(0, Math.min(1, s.opacity * alphaMul));
+    ctx.globalAlpha = Math.max(0, Math.min(1, opacity * alphaMul));
 
     ctx.strokeStyle = INK.beak;
-    ctx.lineWidth = 0.44 * s.scale;
+    ctx.lineWidth = 0.44 * scale;
     ctx.beginPath();
-    ctx.moveTo(s.x + dx * 3.8 * s.scale, s.y + dy * 3.8 * s.scale);
+    ctx.moveTo(x + dx * 3.8 * scale, y + dy * 3.8 * scale);
     ctx.lineTo(tx, ty);
     ctx.stroke();
 
     ctx.strokeStyle = INK.achene;
-    ctx.lineWidth = 1.4 * s.scale;
+    ctx.lineWidth = 1.4 * scale;
     ctx.lineCap = 'round';
     ctx.beginPath();
-    ctx.moveTo(s.x, s.y);
-    ctx.lineTo(s.x + dx * 4 * s.scale, s.y + dy * 4 * s.scale);
+    ctx.moveTo(x, y);
+    ctx.lineTo(x + dx * 4 * scale, y + dy * 4 * scale);
     ctx.stroke();
 
     const baseAng = Math.atan2(dy, dx);
-    const pr = s.pappusRadius * s.scale;
-    for (let i = 0; i < s.bristles.length; i++) {
-      const br = s.bristles[i];
+    const pr = pappusRadius * scale;
+    for (let i = 0; i < bristles.length; i++) {
+      const br = bristles[i];
       const a = baseAng + br.spread;
       const r = pr * br.len;
       ctx.strokeStyle = i % 3 === 0 ? INK.sheen : (i % 2 === 0 ? INK.fine : INK.warm);
-      ctx.lineWidth = (i % 3 === 0 ? 0.6 : 0.34) * s.scale;
+      ctx.lineWidth = (i % 3 === 0 ? 0.58 : 0.34) * scale;
       ctx.beginPath();
       ctx.moveTo(tx, ty);
       ctx.quadraticCurveTo(
@@ -346,6 +219,147 @@
     ctx.restore();
   }
 
+  // ========================================================================
+  // A ENTIDADE ÚNICA METAMÓRFICA (flor completa ⇄ semente-guia)
+  // ========================================================================
+  const CROWN_SEED_COUNT = 45; // v1 usava 92; 45 já lê como coroa cheia
+  const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
+  function createCrownSeeds(count) {
+    const list = [];
+    for (let i = 0; i < count; i++) {
+      const y = 1 - (i / (count - 1)) * 1.86;
+      const r = Math.sqrt(Math.max(0, 1 - y * y));
+      const theta = goldenAngle * i;
+      list.push({
+        // posição normalizada na esfera — pré-computada, nunca muda
+        nx: Math.cos(theta) * r,
+        ny: y,
+        nz: Math.sin(theta) * r,
+        frac: i / count,
+        beakLength: 26 + (i % 6) * 1.6,
+        pappusRadius: 11 + (i % 4) * 1.1,
+        bristles: createBristles(10)
+      });
+    }
+    return list;
+  }
+
+  const entity = {
+    x: 0, y: 0, vx: 0, vy: 0,
+    angle: -Math.PI / 2,
+    scale: 1.25,
+    morph: 1.0,        // 1 = flor completa; 0 = semente-guia única
+    targetMorph: 1.0,
+    axialSpin: 0,
+    beakLength: 34,
+    pappusRadius: 15,
+    bristles: createBristles(16),
+    crown: createCrownSeeds(CROWN_SEED_COUNT)
+  };
+
+  // 8 pontos de virada — 1 por seção, replicando a estrutura da v1
+  // side define de que margem a entidade "observa" a seção; morph
+  // define se ali ela deve estar como flor completa (1) ou semente (0)
+  const SECTION_WAYPOINTS = [
+    { id: 'inicio',               side: 'right',  morph: 1.00 },
+    { id: 'abordagem',            side: 'left',   morph: 0.00 },
+    { id: 'pilares',              side: 'right',  morph: 1.00 },
+    { id: 'para-quem',            side: 'left',   morph: 0.00 },
+    { id: 'sobre-ana',            side: 'right',  morph: 1.00 },
+    { id: 'processo',             side: 'left',   morph: 0.00 },
+    { id: 'perguntas-frequentes', side: 'right',  morph: 1.00 },
+    { id: 'contato',              side: 'center', morph: 1.00 }
+  ];
+
+  function getStageAnchor() {
+    if (heroVideoStage && width > 980) {
+      const r = heroVideoStage.getBoundingClientRect();
+      if (r.width > 100) return { x: r.left + r.width * 0.55, y: r.top + r.height * 0.48 };
+    }
+    return { x: width > 980 ? width * 0.72 : width * 0.7, y: height * 0.48 };
+  }
+
+  function computeChoreography() {
+    const isDesktop = width > 1024;
+    const leftX = isDesktop ? width * 0.10 : width * 0.12;
+    const rightX = isDesktop ? width * 0.90 : width * 0.86;
+
+    const boundaries = [];
+    for (const wp of SECTION_WAYPOINTS) {
+      const el = document.getElementById(wp.id);
+      if (!el) continue;
+      const rect = el.getBoundingClientRect();
+      const anchorX = wp.side === 'left' ? leftX : (wp.side === 'right' ? rightX : width * 0.5);
+      boundaries.push({ id: wp.id, top: rect.top, anchorX, anchorY: height * 0.46, morph: wp.morph });
+    }
+    if (boundaries.length === 0) {
+      return { x: rightX, y: height * 0.46, scale: 1.22, morph: 1, spin: time * 1.2 };
+    }
+
+    const bandEnter = height * 0.86;
+    const bandLeave = height * 0.14;
+
+    for (let i = 1; i < boundaries.length; i++) {
+      const prev = boundaries[i - 1];
+      const curr = boundaries[i];
+      if (curr.top <= bandEnter && curr.top >= bandLeave) {
+        const rawP = (bandEnter - curr.top) / (bandEnter - bandLeave);
+        const p = Math.max(0, Math.min(1, rawP));
+        const smoothP = easeInOutCubic(p);
+        const bell = Math.sin(p * Math.PI);
+
+        const targetX = prev.anchorX + (curr.anchorX - prev.anchorX) * smoothP;
+        const targetY = prev.anchorY + (curr.anchorY - prev.anchorY) * smoothP - bell * 30;
+        const targetMorph = prev.morph + (curr.morph - prev.morph) * smoothP;
+        const targetScale = 1.2 + bell * (isDesktop ? 0.9 : 0.5);
+
+        return { x: targetX, y: targetY, scale: targetScale, morph: targetMorph, spin: time * 1.4 + p * Math.PI * 2, transition: bell };
+      }
+    }
+
+    let active = boundaries[0];
+    const mid = height * 0.48;
+    for (const b of boundaries) if (b.top <= mid) active = b;
+
+    return {
+      x: active.anchorX + Math.sin(time * 0.8) * 14,
+      y: active.anchorY + Math.cos(time * 0.65) * 22,
+      scale: 1.2 + Math.sin(time * 1.0) * 0.06,
+      morph: active.morph,
+      spin: time * 1.1,
+      transition: 0
+    };
+  }
+
+  let revealed = false;
+  let revealAlpha = 0;
+
+  function init() {
+    const anchor = getStageAnchor();
+    entity.x = anchor.x;
+    entity.y = anchor.y;
+    refreshContentElements();
+  }
+
+  function reveal() {
+    if (revealed) return;
+    revealed = true;
+    heroVideoStage?.classList.add('video-completed');
+  }
+
+  if (heroVideo) {
+    heroVideo.addEventListener('timeupdate', () => {
+      if (heroVideo.duration && heroVideo.currentTime >= heroVideo.duration - 1.2) reveal();
+    });
+    heroVideo.addEventListener('ended', reveal);
+    heroVideo.addEventListener('error', reveal);
+    const p = heroVideo.play();
+    if (p !== undefined) p.catch(reveal);
+  } else {
+    reveal();
+  }
+
   function resize() {
     width = window.innerWidth;
     height = window.innerHeight;
@@ -355,15 +369,7 @@
     updateProtectedRects();
   }
 
-  window.addEventListener('resize', () => {
-    resize();
-    if (dandelion) {
-      const anchor = getStageAnchor();
-      dandelion.baseHeadX = anchor.x;
-      dandelion.baseHeadY = anchor.y;
-    }
-  }, { passive: true });
-
+  window.addEventListener('resize', resize, { passive: true });
   window.addEventListener('scroll', () => {
     scrollY = window.scrollY || 0;
     document.getElementById('siteHeader')?.classList.toggle('scrolled', scrollY > 48);
@@ -379,40 +385,23 @@
     pointer.lastY = e.clientY;
     pointer.active = true;
   }, { passive: true });
-
   window.addEventListener('pointerleave', () => { pointer.active = false; });
+
+  // Adendo Etapa 4: reação sutil à seção ativa (mantido — mescla bem
+  // com a metamorfose, dando à flor um "olhar" para o conteúdo)
+  let activeSectionTilt = 0;
+  window.addEventListener('section:active', (e) => {
+    const id = e.detail?.sectionId;
+    const wp = SECTION_WAYPOINTS.find((w) => w.id === id);
+    if (wp) activeSectionTilt = wp.side === 'left' ? -0.5 : (wp.side === 'right' ? 0.5 : 0);
+  });
 
   resize();
   init();
 
-  // Adendo da Etapa 4: reação sutil da flor à seção ativa na página.
-  // activeSectionTilt vai de -1 (seção à esquerda do layout) a 1 (seção
-  // à direita), interpolado suavemente dentro do loop de render.
-  let activeSectionTilt = 0;
-  const SECTION_TILT_MAP = {
-    'inicio': 0,
-    'abordagem': -0.6,
-    'pilares': 0.6,
-    'para-quem': -0.6,
-    'sobre-ana': 0.6,
-    'processo': -0.6,
-    'perguntas-frequentes': 0.6,
-    'contato': 0
-  };
-
-  window.addEventListener('section:active', (e) => {
-    const id = e.detail?.sectionId;
-    if (id && SECTION_TILT_MAP.hasOwnProperty(id)) {
-      activeSectionTilt = SECTION_TILT_MAP[id];
-    }
-  });
-
   function render(now) {
     rafId = requestAnimationFrame(render);
-
     if (!canvasIsInViewport) return;
-
-    // FPS cap: pula o frame se ainda não passou o orçamento de tempo
     if (now - lastFrameTime < FRAME_BUDGET_MS) return;
     lastFrameTime = now;
 
@@ -423,86 +412,158 @@
     if (revealAlpha <= 0.01) return;
 
     const heroHeight = heroSection?.offsetHeight || height;
-    const heroVisibility = Math.max(0, Math.min(1, 1 - scrollY / (heroHeight * 0.92)));
+    const heroVisibility = Math.max(0, Math.min(1, 1 - scrollY / (heroHeight * 0.95)));
+    // A entidade fica visível durante o hero E durante toda a rolagem
+    // subsequente (ela é o guia do site inteiro, não só do hero) —
+    // por isso globalAlpha não depende de heroVisibility sozinho.
+    const globalAlpha = revealAlpha;
 
-    // ---- A FLOR (segue o scroll suavemente, sem giro contínuo automático) ----
-    if (dandelion && heroVisibility > 0.01) {
-      const targetY = dandelion.baseHeadY - scrollY * 0.55;
-      dandelion.headY += (targetY - dandelion.headY) * 0.12;
-      dandelion.headX += (dandelion.baseHeadX - dandelion.headX) * 0.08;
+    const choreo = computeChoreography();
 
-      let torque = 0;
-      if (pointer.active) {
-        const dx = dandelion.headX - pointer.x;
-        const dy = dandelion.headY - pointer.y;
-        const dist = Math.hypot(dx, dy);
-        if (dist < 130 && dist > 1) {
-          torque = (dx / dist) * ((130 - dist) / 130) * 0.14;
-        }
+    const springK = 0.08 + (choreo.transition || 0) * 0.04;
+    entity.vx = (entity.vx + (choreo.x - entity.x) * springK) * 0.8;
+    entity.vy = (entity.vy + (choreo.y - entity.y) * springK) * 0.8;
+
+    if (pointer.active) {
+      const dx = entity.x - pointer.x;
+      const dy = entity.y - pointer.y;
+      const dist = Math.hypot(dx, dy);
+      if (dist < 140 && dist > 1) {
+        const prox = (140 - dist) / 140;
+        entity.vx += (dx / dist) * prox * 0.5;
+        entity.vy += (dy / dist) * prox * 0.4;
       }
-      const windBase = Math.sin(time * 0.6) * 0.05;
-      // Adendo Etapa 4: soma um viés de inclinação de até ±0.05 rad
-      // conforme a seção ativa na página — sutil o suficiente para não
-      // parecer um efeito separado, mas perceptível como "a flor
-      // acompanha a leitura"
-      const sectionBias = activeSectionTilt * 0.05;
-      const targetAngle = Math.max(-0.26, Math.min(0.3, 0.04 + windBase + torque + sectionBias));
-      dandelion.stemVel = (dandelion.stemVel + (targetAngle - dandelion.stemAngle) * 0.07) * 0.85;
-      dandelion.stemAngle += dandelion.stemVel;
+    }
 
-      const baseX = dandelion.headX - Math.sin(dandelion.stemAngle) * dandelion.stemLength;
-      const baseY = dandelion.headY + Math.cos(dandelion.stemAngle) * dandelion.stemLength;
-      const flowerAlpha = revealAlpha * heroVisibility;
+    const avoid = avoidanceAt(entity.x, entity.y);
+    const avoidWeight = 1 - (choreo.transition || 0) * 0.7;
+    entity.vx += avoid.pushX * avoidWeight;
+    entity.vy += avoid.pushY * avoidWeight;
 
-      ctx.save();
-      ctx.globalAlpha = flowerAlpha;
-      const stemGrad = ctx.createLinearGradient(dandelion.headX, dandelion.headY, baseX, baseY);
-      stemGrad.addColorStop(0, 'rgba(43,61,50,0.76)');
-      stemGrad.addColorStop(0.68, 'rgba(68,84,71,0.42)');
-      stemGrad.addColorStop(1, 'rgba(247,245,240,0)');
-      ctx.strokeStyle = stemGrad;
-      ctx.lineWidth = 2.6;
-      ctx.lineCap = 'round';
+    entity.x += entity.vx;
+    entity.y += entity.vy;
+    entity.scale += (choreo.scale - entity.scale) * 0.1;
+    entity.morph += (choreo.morph - entity.morph) * 0.08;
+    entity.axialSpin = choreo.spin + activeSectionTilt * 0.3;
+
+    // ---- RENDERIZAÇÃO DA ENTIDADE METAMÓRFICA ----
+    const morph = Math.max(0, Math.min(1, entity.morph));
+    const dissolve = 1 - morph;
+    const sc = entity.scale * (1 - morph * 0.18);
+    const ax = entity.x, ay = entity.y;
+
+    // PARTE A: caule + receptáculo + coroa (visível conforme morph > 0)
+    if (morph > 0.02) {
+      const crownScale = 0.85 * (0.82 + morph * 0.28);
+      const stemAlpha = Math.pow(morph, 1.6) * globalAlpha;
+
+      if (stemAlpha > 0.02) {
+        const sway = Math.sin(time * 1.0) * 0.05;
+        const stemLen = 170 * Math.pow(morph, 0.85);
+        const baseX = ax - Math.sin(sway) * stemLen;
+        const baseY = ay + Math.cos(sway) * stemLen;
+        const ctrlX = baseX + (ax - baseX) * 0.45 - 8;
+        const ctrlY = baseY - (baseY - ay) * 0.54;
+
+        ctx.save();
+        ctx.globalAlpha = stemAlpha;
+        const grad = ctx.createLinearGradient(ax, ay, baseX, baseY);
+        grad.addColorStop(0, 'rgba(43,61,50,0.78)');
+        grad.addColorStop(0.65, 'rgba(68,84,71,0.38)');
+        grad.addColorStop(1, 'rgba(247,245,240,0)');
+        ctx.strokeStyle = grad;
+        ctx.lineWidth = 2.3 * crownScale;
+        ctx.lineCap = 'round';
+        ctx.beginPath();
+        ctx.moveTo(baseX, baseY);
+        ctx.quadraticCurveTo(ctrlX, ctrlY, ax, ay + 2);
+        ctx.stroke();
+        ctx.restore();
+
+        drawReceptacle(ax, ay, crownScale, stemAlpha);
+      }
+
+      // Coroa: cada semente projeta sua posição 3D pré-computada,
+      // girando com spiralSpin conforme a dissolução avança
+      for (let i = 0; i < entity.crown.length; i++) {
+        const cs = entity.crown[i];
+        const detach = Math.max(0, Math.min(1, dissolve * 1.3 - cs.frac * 0.3));
+        const seedAlpha = (1 - Math.pow(detach, 1.3)) * globalAlpha * 0.9;
+        if (seedAlpha <= 0.02) continue;
+
+        const spin = entity.axialSpin * 0.5 + detach * Math.PI * 2.2;
+        const rx = cs.nx * Math.cos(spin) - cs.nz * Math.sin(spin);
+        const ry = cs.ny;
+        const spiralR = (4.5 + Math.pow(detach, 1.4) * 110) * crownScale;
+        const lift = -Math.pow(detach, 1.5) * 38;
+
+        const sx = ax + rx * spiralR;
+        const sy = ay + ry * (4.5 * crownScale + Math.pow(detach, 1.3) * 64) + lift;
+        const angle = Math.atan2(ry, rx) + detach * 1.3;
+
+        drawSeedShape(
+          sx, sy, angle,
+          (0.75 + (cs.nz + 1) * 0.1) * crownScale * (1 - detach * 0.2),
+          cs.beakLength, cs.pappusRadius, cs.bristles, seedAlpha, 1
+        );
+      }
+    }
+
+    // PARTE B: semente-guia central (sempre presente, no topo da coroa
+    // ou voando sozinha quando morph = 0)
+    const dx = Math.cos(entity.angle);
+    const dy = Math.sin(entity.angle);
+    const beakLen = entity.beakLength * sc;
+    const tx = ax + dx * beakLen;
+    const ty = ay + dy * beakLen;
+
+    ctx.save();
+    ctx.globalAlpha = globalAlpha;
+
+    const haloR = (24 + (choreo.transition || 0) * 20) * sc;
+    const halo = ctx.createRadialGradient(tx, ty, 1, tx, ty, haloR);
+    halo.addColorStop(0, `rgba(168,90,63,${(0.16 + (choreo.transition || 0) * 0.14).toFixed(3)})`);
+    halo.addColorStop(0.55, 'rgba(212,162,128,0.07)');
+    halo.addColorStop(1, 'rgba(247,245,240,0)');
+    ctx.fillStyle = halo;
+    ctx.beginPath();
+    ctx.arc(tx, ty, haloR, 0, Math.PI * 2);
+    ctx.fill();
+
+    const pr = entity.pappusRadius * sc;
+    for (let i = 0; i < entity.bristles.length; i++) {
+      const br = entity.bristles[i];
+      const a = Math.atan2(dy, dx) + br.spread;
+      const r = pr * br.len;
+      ctx.strokeStyle = i % 3 === 0 ? 'rgba(168,90,63,0.7)' : 'rgba(72,62,50,0.5)';
+      ctx.lineWidth = (i % 3 === 0 ? 0.6 : 0.4) * sc;
       ctx.beginPath();
-      ctx.moveTo(baseX, baseY);
-      ctx.quadraticCurveTo(baseX + (dandelion.headX - baseX) * 0.45, baseY - (baseY - dandelion.headY) * 0.54, dandelion.headX, dandelion.headY + 2);
+      ctx.moveTo(tx, ty);
+      ctx.quadraticCurveTo(
+        tx + Math.cos(a + br.curve) * r * 0.55,
+        ty + Math.sin(a + br.curve) * r * 0.55,
+        tx + Math.cos(a) * r, ty + Math.sin(a) * r
+      );
       ctx.stroke();
-      ctx.restore();
-
-      drawReceptacle(dandelion.headX, dandelion.headY, dandelion.scale, flowerAlpha);
-
-      for (const s of dandelion.seeds) {
-        const rot = dandelion.stemAngle * 0.6 + Math.sin(time * 1.2 + s.swayPhase) * 0.025;
-        const rx = s.nx * Math.cos(rot) - s.ny * Math.sin(rot);
-        const ry = s.nx * Math.sin(rot) + s.ny * Math.cos(rot);
-        s.x = dandelion.headX + rx * 5 * dandelion.scale;
-        s.y = dandelion.headY + ry * 5 * dandelion.scale;
-        const ba = Math.atan2(ry, rx);
-        s.angle = ba;
-        s.opacity += ((0.36 + (s.nz + 1) * 0.3) - s.opacity) * 0.06;
-        s.scale = 0.86 + (s.nz + 1) * 0.11;
-        drawSeed(s, flowerAlpha);
-      }
     }
 
-    // ---- SEMENTES ATMOSFÉRICAS (leves, quantidade travada) ----
-    for (let i = 0; i < freeSeeds.length; i++) {
-      const s = freeSeeds[i];
-      s.vx += Math.sin(time * 0.5 + i) * 0.006;
-      s.vy += -0.002;
-      const av = avoidanceAt(s.x, s.y);
-      s.vx += av.pushX * 0.02;
-      s.vx *= 0.97;
-      s.vy *= 0.97;
-      s.x += s.vx;
-      s.y += s.vy;
+    const stemGrad = ctx.createLinearGradient(ax, ay, tx, ty);
+    stemGrad.addColorStop(0, '#4A382B');
+    stemGrad.addColorStop(0.5, '#7A5B47');
+    stemGrad.addColorStop(1, '#A85A3F');
+    ctx.strokeStyle = stemGrad;
+    ctx.lineWidth = 0.72 * sc;
+    ctx.beginPath();
+    ctx.moveTo(ax + dx * 4 * sc, ay + dy * 4 * sc);
+    ctx.lineTo(tx, ty);
+    ctx.stroke();
 
-      if (s.y < -40) { s.y = height + 30; s.x = Math.random() * width; }
-      if (s.x < -40) s.x = width + 30;
-      if (s.x > width + 40) s.x = -30;
+    ctx.fillStyle = '#A85A3F';
+    ctx.beginPath();
+    ctx.arc(tx, ty, 1.1 * sc, 0, Math.PI * 2);
+    ctx.fill();
 
-      drawSeed(s, revealAlpha * av.alpha);
-    }
+    ctx.restore();
   }
 
   rafId = requestAnimationFrame(render);
