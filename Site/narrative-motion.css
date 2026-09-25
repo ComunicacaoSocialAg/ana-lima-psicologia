@@ -1,0 +1,111 @@
+/* ==========================================================================
+   ETAPA 4 — CSS DE MOTION COM PROPÓSITO NARRATIVO
+   (complementa narrative-motion.js — ver comentários lá para o raciocínio
+   completo de cada decisão)
+   ========================================================================== */
+
+/* --------------------------------------------------------------------
+   KICKERS (numeração romana): entram como "virada de página" —
+   deslize lateral mais longo, sugerindo início de capítulo/seção nova
+   -------------------------------------------------------------------- */
+.editorial-kicker {
+  opacity: 0;
+  transform: translate3d(-40px, 0, 0);
+  transition: opacity 0.7s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.75s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-up.is-visible .editorial-kicker,
+.is-visible.editorial-kicker {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* --------------------------------------------------------------------
+   TÍTULOS H2: leve escala de chegada, sugere peso, não só deslocamento
+   -------------------------------------------------------------------- */
+.editorial-h2 {
+  opacity: 0;
+  transform: translate3d(0, 22px, 0) scale(0.97);
+  transition: opacity 0.85s cubic-bezier(0.16, 1, 0.3, 1) 0.08s,
+              transform 0.9s cubic-bezier(0.16, 1, 0.3, 1) 0.08s;
+}
+
+.reveal-up.is-visible .editorial-h2 {
+  opacity: 1;
+  transform: translate3d(0, 0, 0) scale(1);
+}
+
+/* --------------------------------------------------------------------
+   CORPO DE TEXTO E PULLQUOTES: entrada mais discreta, convida à leitura
+   em vez de chamar atenção para o movimento
+   -------------------------------------------------------------------- */
+.editorial-prose,
+.editorial-pullquote {
+  opacity: 0;
+  transform: translate3d(0, 14px, 0);
+  transition: opacity 1.1s ease 0.18s,
+              transform 1.1s cubic-bezier(0.22, 1, 0.36, 1) 0.18s;
+}
+
+.reveal-up.is-visible .editorial-prose,
+.reveal-up.is-visible .editorial-pullquote {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+/* --------------------------------------------------------------------
+   STAGGER: itens repetidos (pilares, "para quem", FAQ) entram em
+   cascata curta, item a item, como um índice sendo preenchido
+   -------------------------------------------------------------------- */
+.narrative-stagger-item {
+  transition-delay: var(--stagger-delay, 0ms) !important;
+}
+
+/* --------------------------------------------------------------------
+   DIVISÓRIAS DE SEÇÃO: desenham quando cruzadas (dividerObserver)
+   -------------------------------------------------------------------- */
+.section-divider {
+  transform-origin: left center;
+  transform: scaleX(0.12);
+  opacity: 0.35;
+  transition: transform 1.25s cubic-bezier(0.16, 1, 0.3, 1),
+              opacity 1s ease;
+}
+
+.section-divider.divider-drawn {
+  transform: scaleX(1);
+  opacity: 1;
+}
+
+/* --------------------------------------------------------------------
+   Mantém a classe base .reveal-up funcionando como antes para
+   qualquer elemento que não se encaixe nos casos específicos acima
+   (fallback de compatibilidade — nada quebra se um elemento novo for
+   adicionado sem uma regra dedicada)
+   -------------------------------------------------------------------- */
+.reveal-up {
+  opacity: 0;
+  transform: translate3d(0, 30px, 0);
+  transition: opacity 0.9s cubic-bezier(0.16, 1, 0.3, 1),
+              transform 0.95s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+.reveal-up.is-visible {
+  opacity: 1;
+  transform: translate3d(0, 0, 0);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .editorial-kicker,
+  .editorial-h2,
+  .editorial-prose,
+  .editorial-pullquote,
+  .section-divider,
+  .reveal-up,
+  .narrative-stagger-item {
+    opacity: 1 !important;
+    transform: none !important;
+    transition: none !important;
+  }
+}

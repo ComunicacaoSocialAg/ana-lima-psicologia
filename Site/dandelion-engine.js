@@ -385,6 +385,28 @@
   resize();
   init();
 
+  // Adendo da Etapa 4: reação sutil da flor à seção ativa na página.
+  // activeSectionTilt vai de -1 (seção à esquerda do layout) a 1 (seção
+  // à direita), interpolado suavemente dentro do loop de render.
+  let activeSectionTilt = 0;
+  const SECTION_TILT_MAP = {
+    'inicio': 0,
+    'abordagem': -0.6,
+    'pilares': 0.6,
+    'para-quem': -0.6,
+    'sobre-ana': 0.6,
+    'processo': -0.6,
+    'perguntas-frequentes': 0.6,
+    'contato': 0
+  };
+
+  window.addEventListener('section:active', (e) => {
+    const id = e.detail?.sectionId;
+    if (id && SECTION_TILT_MAP.hasOwnProperty(id)) {
+      activeSectionTilt = SECTION_TILT_MAP[id];
+    }
+  });
+
   function render(now) {
     rafId = requestAnimationFrame(render);
 
@@ -419,7 +441,12 @@
         }
       }
       const windBase = Math.sin(time * 0.6) * 0.05;
-      const targetAngle = Math.max(-0.26, Math.min(0.3, 0.04 + windBase + torque));
+      // Adendo Etapa 4: soma um viés de inclinação de até ±0.05 rad
+      // conforme a seção ativa na página — sutil o suficiente para não
+      // parecer um efeito separado, mas perceptível como "a flor
+      // acompanha a leitura"
+      const sectionBias = activeSectionTilt * 0.05;
+      const targetAngle = Math.max(-0.26, Math.min(0.3, 0.04 + windBase + torque + sectionBias));
       dandelion.stemVel = (dandelion.stemVel + (targetAngle - dandelion.stemAngle) * 0.07) * 0.85;
       dandelion.stemAngle += dandelion.stemVel;
 
