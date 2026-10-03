@@ -19,4 +19,4 @@ Allow: /
 User-agent: Applebot-Extended
 Allow: /
 
-Sitemap: https://analimapsicologa.com.br/sitemap.xml
+Sitemap: https://analimapsicologia.com.br/sitemap.xml

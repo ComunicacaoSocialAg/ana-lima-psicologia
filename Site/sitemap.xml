@@ -3,20 +3,20 @@
         xmlns:image="http://www.google.com/schemas/sitemap-image/1.1"
         xmlns:video="http://www.google.com/schemas/sitemap-video/1.1">
   <url>
-    <loc>https://analimapsicologa.com.br/</loc>
-    <lastmod>2026-09-25</lastmod>
+    <loc>https://analimapsicologia.com.br/</loc>
+    <lastmod>2026-10-02</lastmod>
     <changefreq>weekly</changefreq>
     <priority>1.0</priority>
     <image:image>
-      <image:loc>https://analimapsicologa.com.br/ana%20lima1.png</image:loc>
+      <image:loc>https://analimapsicologia.com.br/ana%20lima1.png</image:loc>
       <image:title>Ana Lima • Psicóloga Clínica em Poços de Caldas e Online (CRP 04/60205)</image:title>
       <image:caption>Retrato da Psicóloga Clínica Ana Lima (CRP 04/60205) • Abordagem Histórico-Cultural</image:caption>
     </image:image>
     <video:video>
-      <video:thumbnail_loc>https://analimapsicologa.com.br/hero-poster.jpg</video:thumbnail_loc>
+      <video:thumbnail_loc>https://analimapsicologia.com.br/hero-poster.jpg</video:thumbnail_loc>
       <video:title>Psicóloga Ana Lima em Poços de Caldas • Abordagem Histórico-Cultural</video:title>
-      <video:description>Você não é apenas o que viveu. É quem toma consciência do que foi vivido. Psicoterapia Clínica Online e Presencial.</video:description>
-      <video:content_loc>https://analimapsicologa.com.br/ana-paula-de-lima-hero-h264.mp4</video:content_loc>
+      <video:description>A clareza sobre quem você é abre espaço para o que você pode ser. Psicoterapia Clínica Online e Presencial.</video:description>
+      <video:content_loc>https://analimapsicologia.com.br/ana-paula-de-lima-hero-h264.mp4</video:content_loc>
       <video:duration>5</video:duration>
     </video:video>
   </url>
