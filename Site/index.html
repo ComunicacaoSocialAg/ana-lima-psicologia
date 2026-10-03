@@ -1,6 +1,16 @@
 <!DOCTYPE html>
 <html lang="pt-BR" class="scroll-smooth" itemscope itemtype="https://schema.org/WebPage">
 <head>
+  <!-- Google tag (gtag.js) -->
+  <script async src="https://www.googletagmanager.com/gtag/js?id=G-GKC2BTV93P"></script>
+  <script>
+    window.dataLayer = window.dataLayer || [];
+    function gtag(){dataLayer.push(arguments);}
+    gtag('js', new Date());
+
+    gtag('config', 'G-GKC2BTV93P');
+  </script>
+
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
   <meta http-equiv="X-UA-Compatible" content="IE=edge" />
@@ -1900,9 +1910,9 @@
         display: none;
       }
 
-      /* No mobile: o canvas com dentes-de-leão só desabrocha a partir do Ato 2 ("entram os dentes de leão") */
+      /* No mobile: o canvas com dentes-de-leão fica sempre visível e integrado */
       #dandelion-guide-canvas {
-        opacity: 0;
+        opacity: 1;
         transition: opacity 1.2s ease;
       }
 
@@ -1916,12 +1926,13 @@
         width: 100%;
         display: block;
         gap: 0;
+        opacity: 1;
         transition: opacity 0.6s ease;
       }
 
       .hero-section.mobile-step-video .hero-editorial-grid {
-        opacity: 0;
-        pointer-events: none;
+        opacity: 1;
+        pointer-events: auto;
       }
 
       .hero-copy-column {
@@ -3520,229 +3531,236 @@
       }
 
       // ========================================================================
-      // 3 UNIDADES DE DENTE-DE-LEÃO NA HERO + SEMENTES VOADORAS LIVRES
+      // MOTOR DO DENTE-DE-LEÃO GUIA METAMÓRFICO & SEMENTES LIVRES (AWWWARDS EDITION)
+      // 1. Acompanha o usuário por todas as 8 seções do site (Hero até Rodapé).
+      // 2. Alterna entre "Flor Completa" (com coroa de 45 sementes em Fibonacci)
+      //    e "Semente-Guia Única" com halo dourado sutil nos pontos de virada.
+      // 3. Sementes livres contínuas flutuam pelo papel linho contornando o conteúdo.
+      // 4. Funciona perfeitamente e com alta performance em Desktop e Mobile.
       // ========================================================================
+      const CROWN_SEED_COUNT = 45;
+      const goldenAngle = Math.PI * (3 - Math.sqrt(5));
+
       let dandelionRevealAlpha = 0;
       let dandelionRevealed = false;
-      let revealElapsed = 0;
       let gustImpulse = 0;
+      let renderRunning = false;
+      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
-      const dandelions = [];
-      const freeSeeds = [];
-      const MAX_FREE_SEEDS = 34;
-
-      function createBristles(bristleCount = 18) {
-        const bristles = [];
-        for (let b = 0; b < bristleCount; b++) {
-          const frac = b / (bristleCount - 1) - 0.5;
-          bristles.push({
+      function createBristles(count = 16) {
+        const list = [];
+        for (let b = 0; b < count; b++) {
+          const frac = b / (count - 1) - 0.5;
+          list.push({
             spread: frac * 1.34 + (Math.random() - 0.5) * 0.08,
             len: 0.86 + Math.random() * 0.30,
             curve: (Math.random() - 0.5) * 0.18
           });
         }
-        return bristles;
+        return list;
       }
 
+      function createCrownSeeds(count) {
+        const list = [];
+        for (let i = 0; i < count; i++) {
+          const y = 1 - (i / (count - 1)) * 1.86;
+          const r = Math.sqrt(Math.max(0, 1 - y * y));
+          const theta = goldenAngle * i;
+          list.push({
+            nx: Math.cos(theta) * r,
+            ny: y,
+            nz: Math.sin(theta) * r,
+            frac: i / count,
+            beakLength: 28 + (i % 6) * 1.8,
+            pappusRadius: 12 + (i % 4) * 1.2,
+            bristles: createBristles(12)
+          });
+        }
+        return list;
+      }
+
+      // Entidade Guia Metamórfica Principal
+      const entity = {
+        x: 0,
+        y: 0,
+        vx: 0,
+        vy: 0,
+        angle: -Math.PI / 2,
+        scale: 1.20,
+        morph: 1.0,        // 1 = flor completa; 0 = semente-guia única
+        targetMorph: 1.0,
+        axialSpin: 0,
+        beakLength: 35,
+        pappusRadius: 15.5,
+        bristles: createBristles(18),
+        crown: createCrownSeeds(CROWN_SEED_COUNT)
+      };
+
+      // Compatibilidade para manipuladores de clique
+      const dandelions = [entity];
+      function detachSeedsFromDandelion(d, count = 2, vx = 0.8, vy = -0.5) {
+        triggerGust(0.9);
+      }
+
+      // 8 Pontos de virada — 1 por seção: Flor (1.0) ou Semente-Guia (0.0)
+      const SECTION_WAYPOINTS = [
+        { id: 'inicio',               side: 'right',  morph: 1.00 },
+        { id: 'abordagem',            side: 'left',   morph: 0.00 },
+        { id: 'pilares',              side: 'right',  morph: 1.00 },
+        { id: 'para-quem',            side: 'left',   morph: 0.00 },
+        { id: 'sobre-ana',            side: 'right',  morph: 1.00 },
+        { id: 'processo',             side: 'left',   morph: 0.00 },
+        { id: 'perguntas-frequentes', side: 'right',  morph: 1.00 },
+        { id: 'contato',              side: 'center', morph: 1.00 }
+      ];
+
       function getHeroStageAnchor() {
+        const isMobile = width <= 768;
         if (heroVideoStage && width > 980) {
           const rect = heroVideoStage.getBoundingClientRect();
           if (rect.width > 100) {
             return {
-              x: rect.left + rect.width * 0.50,
-              y: rect.top + rect.height * 0.46
+              x: rect.left + rect.width * 0.52,
+              y: rect.top + rect.height * 0.48
             };
           }
         }
-        if (width <= 768) {
+        if (isMobile) {
           return {
-            x: width * 0.58,
-            y: Math.min(height * 0.58, 480)
+            x: width * 0.82,
+            y: Math.min(height * 0.44, 390)
           };
         }
         return {
-          x: width > 980 ? width * 0.67 : width * 0.50,
-          y: height * 0.46
+          x: width > 1024 ? width * 0.74 : width * 0.68,
+          y: height * 0.48
         };
       }
 
-      // Cria um Dente-de-Leão completo (caule elástico + coroa em espiral áurea)
-      function createDandelionUnit(config) {
-        const goldenAngle = Math.PI * (3 - Math.sqrt(5));
-        const seeds = [];
-        for (let i = 0; i < config.seedCount; i++) {
-          const y = 1 - (i / (config.seedCount - 1)) * 1.88;
-          const r = Math.sqrt(Math.max(0, 1 - y * y));
-          const theta = goldenAngle * i;
-          const nx = Math.cos(theta) * r;
-          const ny = y;
-          const nz = Math.sin(theta) * r;
+      // Calcula a coreografia suave de voo e metamorfose ao longo do scroll
+      function computeChoreography() {
+        const isDesktop = width > 1024;
+        const isMobile = width <= 768;
+        const leftX = isDesktop ? width * 0.10 : (isMobile ? width * 0.12 : width * 0.11);
+        const rightX = isDesktop ? width * 0.88 : (isMobile ? width * 0.86 : width * 0.87);
 
-          seeds.push({
-            nx, ny, nz,
-            beakLength: (35 + (i % 7) * 2.1) * config.scale,
-            pappusRadius: (14.2 + (i % 5) * 1.5) * config.scale,
-            attached: true,
-            regrowTimer: 0,
-            x: 0,
-            y: 0,
-            z: nz,
-            angle: Math.atan2(ny, nx),
-            scale: 1,
-            opacity: 1,
-            swayPhase: Math.random() * Math.PI * 2,
-            bristles: createBristles(15 + (i % 5))
+        const boundaries = [];
+        for (let i = 0; i < SECTION_WAYPOINTS.length; i++) {
+          const wp = SECTION_WAYPOINTS[i];
+          const el = document.getElementById(wp.id);
+          if (!el) continue;
+          const rect = el.getBoundingClientRect();
+          const anchorX = wp.side === 'left' ? leftX : (wp.side === 'right' ? rightX : width * 0.50);
+          boundaries.push({
+            id: wp.id,
+            top: rect.top,
+            anchorX,
+            anchorY: height * 0.46,
+            morph: wp.morph
           });
         }
 
+        const baseScale = isMobile ? 0.82 : 1.20;
+
+        if (boundaries.length === 0) {
+          return { x: rightX, y: height * 0.46, scale: baseScale, morph: 1.0, spin: time * 1.1, transition: 0 };
+        }
+
+        const bandEnter = height * 0.85;
+        const bandLeave = height * 0.15;
+
+        for (let i = 1; i < boundaries.length; i++) {
+          const prev = boundaries[i - 1];
+          const curr = boundaries[i];
+          if (curr.top <= bandEnter && curr.top >= bandLeave) {
+            const rawP = (bandEnter - curr.top) / (bandEnter - bandLeave);
+            const p = Math.max(0, Math.min(1, rawP));
+            const smoothP = easeInOutCubic(p);
+            const bell = Math.sin(p * Math.PI);
+
+            const targetX = prev.anchorX + (curr.anchorX - prev.anchorX) * smoothP;
+            const targetY = prev.anchorY + (curr.anchorY - prev.anchorY) * smoothP - bell * 32;
+            const targetMorph = prev.morph + (curr.morph - prev.morph) * smoothP;
+            const targetScale = baseScale + bell * (isDesktop ? 0.70 : 0.32);
+
+            return {
+              x: targetX,
+              y: targetY,
+              scale: targetScale,
+              morph: targetMorph,
+              spin: time * 1.3 + p * Math.PI * 2,
+              transition: bell
+            };
+          }
+        }
+
+        let active = boundaries[0];
+        const mid = height * 0.48;
+        for (let i = 0; i < boundaries.length; i++) {
+          if (boundaries[i].top <= mid) active = boundaries[i];
+        }
+
         return {
-          ...config,
-          currentX: config.startX,
-          prevX: config.startX,
-          headX: config.startX,
-          headY: config.startY,
-          stemAngle: config.restingTilt,
-          stemVel: 0,
-          bloomScale: 0.88,
-          seeds
+          x: active.anchorX + Math.sin(time * 0.8) * (isMobile ? 8 : 14),
+          y: active.anchorY + Math.cos(time * 0.65) * (isMobile ? 12 : 20),
+          scale: baseScale + Math.sin(time * 1.0) * 0.05,
+          morph: active.morph,
+          spin: time * 1.1,
+          transition: 0
         };
       }
 
-      // Cria uma semente livre (pode vir do desprendimento da flor ou do fluxo ambiente)
+      // Sementes Livres Ambientais
+      const freeSeeds = [];
+      const MAX_FREE_SEEDS = 16;
+
       function spawnFreeSeed(opts = {}) {
         const isMobile = width <= 768;
-        const maxSeeds = isMobile ? 18 : MAX_FREE_SEEDS;
-        if (freeSeeds.length >= maxSeeds && !opts.force) {
-          const idx = freeSeeds.findIndex(s => !s.isLead);
-          if (idx !== -1) freeSeeds.splice(idx, 1);
+        const maxSeeds = isMobile ? 8 : MAX_FREE_SEEDS;
+        if (freeSeeds.length >= maxSeeds) {
+          freeSeeds.shift();
         }
 
         const pos = (opts.x !== undefined && opts.y !== undefined)
           ? { x: opts.x, y: opts.y }
           : pickFreeSpawnPoint(true);
 
-        const isLead = Boolean(opts.isLead) && !isMobile;
-        const scale = opts.scale || (isMobile ? (0.42 + Math.random() * 0.26) : (isLead ? 1.12 : (0.58 + Math.random() * 0.36)));
-
         freeSeeds.push({
-          isLead,
           x: pos.x,
           y: pos.y,
-          vx: opts.vx !== undefined ? opts.vx : (Math.random() - 0.42) * 0.85,
-          vy: opts.vy !== undefined ? opts.vy : (-0.35 + (Math.random() - 0.5) * 0.45),
+          vx: opts.vx !== undefined ? opts.vx : (Math.random() - 0.42) * 0.75,
+          vy: opts.vy !== undefined ? opts.vy : (-0.32 + (Math.random() - 0.5) * 0.38),
           angle: -Math.PI * 0.5 + (Math.random() - 0.5) * 0.25,
           angVel: 0,
-          scale,
-          beakLength: isLead ? 38 : (27 + Math.random() * 9),
-          pappusRadius: isLead ? 16.5 : (11.5 + Math.random() * 4),
-          opacity: isLead ? 0.90 : (0.38 + Math.random() * 0.34),
-          fadeIn: opts.fromCrown ? 1 : 0.1,
+          scale: isMobile ? (0.44 + Math.random() * 0.24) : (0.56 + Math.random() * 0.32),
+          beakLength: 26 + Math.random() * 8,
+          pappusRadius: 11.5 + Math.random() * 3.5,
+          opacity: 0.36 + Math.random() * 0.32,
+          fadeIn: opts.fromCrown ? 1 : 0.08,
           wanderTheta: Math.random() * Math.PI * 2,
-          wanderSpeed: 0.008 + Math.random() * 0.014,
-          buoyancy: 0.14 + Math.random() * 0.22,
+          wanderSpeed: 0.008 + Math.random() * 0.012,
+          buoyancy: 0.12 + Math.random() * 0.20,
           swayPhase: Math.random() * Math.PI * 2,
-          bristles: opts.bristles || createBristles(isLead ? 20 : 14)
+          bristles: createBristles(12)
         });
       }
 
-      // Desprende N sementes de uma unidade de Dente-de-Leão (quando o usuário passa o mouse ou sopra)
-      function detachSeedsFromDandelion(dandelion, count = 3, impulseVx = 0.8, impulseVy = -0.6) {
-        const attachedCandidates = dandelion.seeds.filter(s => s.attached && s.z >= -0.2);
-        if (attachedCandidates.length < 25) return;
-
-        attachedCandidates.sort((a, b) => (b.nx - b.ny * 0.6) - (a.nx - a.ny * 0.6));
-        const toDetach = Math.min(count, attachedCandidates.length - 24);
-
-        for (let i = 0; i < toDetach; i++) {
-          const idx = Math.min(attachedCandidates.length - 1, Math.floor(Math.random() * Math.min(18, attachedCandidates.length)));
-          const s = attachedCandidates[idx];
-          if (!s || !s.attached) continue;
-          s.attached = false;
-          s.regrowTimer = 14 + Math.random() * 8;
-
-          spawnFreeSeed({
-            force: true,
-            fromCrown: true,
-            x: s.x + Math.cos(s.angle) * 18,
-            y: s.y + Math.sin(s.angle) * 18,
-            vx: impulseVx + (Math.random() - 0.3) * 1.3,
-            vy: impulseVy + (Math.random() - 0.55) * 1.1,
-            scale: 0.72 * dandelion.scale + Math.random() * 0.22,
-            bristles: s.bristles
-          });
-        }
-      }
-
-      function initBotanicalGarden() {
-        dandelions.length = 0;
-        freeSeeds.length = 0;
-
+      function triggerGust(power = 1.0) {
+        gustImpulse = Math.min(2.5, gustImpulse + power);
+        entity.vx += (Math.random() - 0.4) * 2.2 * power;
+        entity.vy += -1.4 * power;
         const isMobile = width <= 768;
-        const stage = getHeroStageAnchor();
-
-        // 1. Dente-de-Leão Principal (escala e posição otimizadas para mobile e desktop)
-        dandelions.push(createDandelionUnit({
-          id: 'primary',
-          scale: isMobile ? 0.70 : 1.02,
-          seedCount: isMobile ? 105 : 145,
-          startX: stage.x,
-          targetRightX: isMobile ? width * 0.84 : (width > 1024 ? width * 0.74 : width * 0.72),
-          startY: stage.y,
-          stemLength: Math.min(height * (isMobile ? 0.32 : 0.42), isMobile ? 220 : 330),
-          restingTilt: 0.04,
-          alphaWeight: 1.0,
-          glideDelay: 0.9
-        }));
-
-        // 2. Dente-de-Leão Secundário
-        dandelions.push(createDandelionUnit({
-          id: 'secondary',
-          scale: isMobile ? 0.54 : 0.78,
-          seedCount: isMobile ? 80 : 112,
-          startX: stage.x + (isMobile ? 44 : 86),
-          targetRightX: isMobile ? width * 0.91 : (width > 1024 ? width * 0.84 : width * 0.82),
-          startY: stage.y - (isMobile ? 36 : 54),
-          stemLength: Math.min(height * (isMobile ? 0.36 : 0.46), isMobile ? 240 : 360),
-          restingTilt: 0.11,
-          alphaWeight: 0.84,
-          glideDelay: 1.15
-        }));
-
-        // 3. Dente-de-Leão Terciário
-        dandelions.push(createDandelionUnit({
-          id: 'tertiary',
-          scale: isMobile ? 0.42 : 0.62,
-          seedCount: isMobile ? 62 : 88,
-          startX: stage.x - (isMobile ? 38 : 54),
-          targetRightX: isMobile ? width * 0.74 : (width > 1024 ? width * 0.65 : width * 0.63),
-          startY: stage.y + (isMobile ? 46 : 68),
-          stemLength: Math.min(height * (isMobile ? 0.26 : 0.34), isMobile ? 180 : 260),
-          restingTilt: -0.07,
-          alphaWeight: 0.68,
-          glideDelay: 1.35
-        }));
-
-        // Semente-Guia Principal (apenas desktop) + Sementes Livres Iniciais
-        if (!isMobile) {
+        const releaseCount = isMobile ? 2 : 4;
+        for (let i = 0; i < releaseCount; i++) {
           spawnFreeSeed({
-            isLead: true,
-            x: stage.x + 20,
-            y: stage.y - 24,
-            vx: 0.35,
-            vy: -0.2
-          });
-        }
-
-        const initialFreeCount = isMobile ? 8 : 20;
-        for (let i = 0; i < initialFreeCount; i++) {
-          spawnFreeSeed({
-            isLead: false
+            x: entity.x + (Math.random() - 0.5) * 20,
+            y: entity.y - 10 + (Math.random() - 0.5) * 20,
+            vx: (Math.random() + 0.3) * power,
+            vy: (-0.6 - Math.random() * 0.5) * power,
+            fromCrown: true
           });
         }
       }
-
-      let renderRunning = false;
-      const prefersReducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
 
       function startRenderLoop() {
         if (!renderRunning && !prefersReducedMotion && !document.hidden) {
@@ -3751,239 +3769,57 @@
         }
       }
 
-      function activateDandelionStage() {
-        if (!dandelionRevealed) {
-          dandelionRevealed = true;
-          document.body.classList.add('dandelions-active');
-          heroVideoStage?.classList.add('video-completed');
-          setTimeout(() => {
-            try { heroVideo?.pause(); } catch(e) {}
-          }, 1800);
-          gustImpulse = 0.45;
-          startRenderLoop();
-          setTimeout(() => {
-            if (dandelions[0]) detachSeedsFromDandelion(dandelions[0], 4, 0.9, -0.4);
-            if (dandelions[1]) detachSeedsFromDandelion(dandelions[1], 3, 0.7, -0.5);
-          }, 900);
-        } else {
-          startRenderLoop();
-        }
-      }
-
-      // ========================================================================
-      // CONTROLADOR DO VÍDEO NATIVO & COREOGRAFIA MOBILE (STORYTELLING EM ATOS)
-      // 1. Mobile: Vídeo fullscreen limpo -> transição para fundo claro linho
-      //    -> Frase 1: "A clareza sobre quem você é"
-      //    -> Dentes de Leão entram + Frase 2: "abre espaço para o que você pode ser."
-      //    -> Entra texto explicativo + Botão do WhatsApp.
-      // 2. Desktop: Sequência original editorial paralela intacta.
-      // ========================================================================
       const heroSection = document.getElementById('inicio');
-      const isMobileDevice = () => window.innerWidth <= 768;
 
-      let mobileSequenceStarted = false;
-      let mobileSequenceCompleted = false;
-      let mobilePushed = false;
-      let mobilePushProgress = 0;
-      let mobileFlowerAlpha = 1.0;
-
-      function triggerMobilePush() {
-        if (!isMobileDevice() || mobilePushed) return;
-        mobilePushed = true;
-        gustImpulse = Math.min(2.4, gustImpulse + 1.2);
-        dandelions.forEach((d, idx) => {
-          detachSeedsFromDandelion(d, 6 - idx, 1.2 + Math.random() * 0.5, -0.45);
-        });
+      function reveal() {
+        if (dandelionRevealed) return;
+        dandelionRevealed = true;
+        document.body.classList.add('dandelions-active');
+        heroSection?.classList.add('mobile-step-final');
+        heroVideoStage?.classList.add('video-completed');
+        startRenderLoop();
       }
 
-      function initMobileHeroState() {
-        if (isMobileDevice()) {
-          if (prefersReducedMotion) {
-            completeMobileSequence();
-          } else if (!mobileSequenceCompleted) {
-            heroSection?.classList.add('mobile-step-video');
-          }
-        }
+      function activateDandelionStage() {
+        reveal();
       }
 
       function completeMobileSequence() {
-        if (mobileSequenceCompleted) return;
-        mobileSequenceCompleted = true;
-        mobilePushed = true;
-        mobilePushProgress = 1.0;
-        mobileFlowerAlpha = 0.0;
         document.body.classList.add('dandelions-active');
-        heroVideoStage?.classList.add('video-completed');
-        try { heroVideo?.pause(); } catch(e) {}
-        heroSection?.classList.remove('mobile-step-video', 'mobile-step-act1', 'mobile-step-act1-fadeout', 'mobile-step-act2', 'mobile-step-act3');
         heroSection?.classList.add('mobile-step-final');
-        activateDandelionStage();
+        heroVideoStage?.classList.add('video-completed');
+        reveal();
       }
 
-      // Toque livre na hero mobile avança imediatamente para o conteúdo completo
-      heroSection?.addEventListener('click', (e) => {
-        if (isMobileDevice() && !mobileSequenceCompleted && !e.target.closest('a, button')) {
-          completeMobileSequence();
+      function initBotanicalGarden() {
+        const anchor = getHeroStageAnchor();
+        entity.x = anchor.x;
+        entity.y = anchor.y;
+        refreshContentElements();
+
+        const isMobile = width <= 768;
+        const initialCount = isMobile ? 6 : 14;
+        for (let i = 0; i < initialCount; i++) {
+          spawnFreeSeed();
         }
-      });
-
-      // Rolar a tela no mobile avança suavemente para o estado completo
-      window.addEventListener('scroll', () => {
-        if (isMobileDevice() && !mobileSequenceCompleted && window.scrollY > 40) {
-          completeMobileSequence();
-        }
-      }, { passive: true });
-
-      // Hook para inspeção e testes automatizados de cada ato
-      window.__setMobileHeroStep = (step) => {
-        if (!isMobileDevice()) return;
-        heroSection?.classList.remove('mobile-step-video', 'mobile-step-act1', 'mobile-step-act1-fadeout', 'mobile-step-act2', 'mobile-step-act3', 'mobile-step-final');
-        if (step === 'video') {
-          mobileSequenceCompleted = false;
-          mobileSequenceStarted = false;
-          mobilePushed = false;
-          mobilePushProgress = 0;
-          mobileFlowerAlpha = 0;
-          heroVideoStage?.classList.remove('video-completed');
-          heroSection?.classList.add('mobile-step-video');
-          document.body.classList.remove('dandelions-active');
-        } else if (step === 'act1') {
-          mobileSequenceCompleted = false;
-          mobilePushed = false;
-          mobilePushProgress = 0;
-          mobileFlowerAlpha = 0;
-          heroVideoStage?.classList.add('video-completed');
-          heroSection?.classList.add('mobile-step-act1');
-          document.body.classList.remove('dandelions-active');
-        } else if (step === 'act2') {
-          mobileSequenceCompleted = false;
-          mobilePushed = false;
-          mobilePushProgress = 0;
-          mobileFlowerAlpha = 1.0;
-          dandelionRevealed = true;
-          dandelionRevealAlpha = 1.0;
-          document.body.classList.add('dandelions-active');
-          heroVideoStage?.classList.add('video-completed');
-          heroSection?.classList.add('mobile-step-act2');
-          dandelions.forEach(d => {
-            d.currentX = d.startX;
-            d.prevX = d.startX;
-          });
-          startRenderLoop();
-        } else if (step === 'act3') {
-          mobileSequenceCompleted = false;
-          heroVideoStage?.classList.add('video-completed');
-          document.body.classList.add('dandelions-active');
-          heroSection?.classList.add('mobile-step-act3');
-          triggerMobilePush();
-          startRenderLoop();
-        } else if (step === 'final') {
-          mobileSequenceCompleted = false; // Permite re-acionar o final mesmo em testes iterativos
-          completeMobileSequence();
-        }
-      };
-
-      window.__getDebugState = () => ({
-        renderRunning,
-        dandelionRevealed,
-        mobileFlowerAlpha,
-        mobilePushed,
-        mobilePushProgress,
-        mobileSequenceCompleted,
-        dandelionRevealAlpha,
-        width,
-        height,
-        dandelionsCount: dandelions.length,
-        freeSeedsCount: freeSeeds.length
-      });
-
-      function runMobileHeroChoreography() {
-        if (!isMobileDevice() || mobileSequenceStarted) {
-          activateDandelionStage();
-          return;
-        }
-        mobileSequenceStarted = true;
-
-        // Transição do vídeo para o fundo linho claro (#F7F5F0)
-        heroVideoStage?.classList.add('video-completed');
-        try { heroVideo?.pause(); } catch(e) {}
-
-        // Ato 1: Frase 1 entra ("A clareza sobre quem você é")
-        setTimeout(() => {
-          if (mobileSequenceCompleted) return;
-          heroSection?.classList.remove('mobile-step-video');
-          heroSection?.classList.add('mobile-step-act1');
-
-          // Ato 2: Dentes de leão entram + Frase 2 ("abre espaço para o que você pode ser.")
-          setTimeout(() => {
-            if (mobileSequenceCompleted) return;
-            heroSection?.classList.remove('mobile-step-act1');
-            heroSection?.classList.add('mobile-step-act2');
-            mobileFlowerAlpha = 1.0;
-            mobilePushProgress = 0;
-            mobilePushed = false;
-            activateDandelionStage();
-
-            // Ato 3: Entra o texto e empurra os dentes de leão para o lado
-            setTimeout(() => {
-              if (mobileSequenceCompleted) return;
-              heroSection?.classList.remove('mobile-step-act2');
-              heroSection?.classList.add('mobile-step-act3');
-              triggerMobilePush();
-
-              // Ato Final: O resto aparece e consolida a cena final
-              setTimeout(() => {
-                completeMobileSequence();
-              }, 1300);
-            }, 2200);
-          }, 1800);
-        }, 350);
       }
 
       function initHeroVideo() {
-        initMobileHeroState();
+        // Revelação suave e imediata com fallback de 1s para o usuário nunca esperar
+        setTimeout(reveal, 1100);
 
-        if (!heroVideo) {
-          if (isMobileDevice()) {
-            runMobileHeroChoreography();
-          } else {
-            activateDandelionStage();
-          }
-          return;
-        }
-
-        let stageActivated = false;
-        const triggerActivation = () => {
-          if (stageActivated) return;
-          stageActivated = true;
-          if (isMobileDevice()) {
-            runMobileHeroChoreography();
-          } else {
-            activateDandelionStage();
-          }
-        };
-
-        // Inicia a transição suave ~0.8s antes do final para fusão orgânica
-        heroVideo.addEventListener('timeupdate', () => {
-          const threshold = isMobileDevice() ? 3.6 : (heroVideo.duration ? Math.max(0, heroVideo.duration - 0.8) : 4.2);
-          if (heroVideo.currentTime >= threshold) {
-            triggerActivation();
-          }
-        });
-
-        heroVideo.addEventListener('ended', triggerActivation);
-        heroVideo.addEventListener('error', triggerActivation);
-
-        // Fallback de segurança garantido para redes lentas ou restrições severas
-        setTimeout(triggerActivation, isMobileDevice() ? 4800 : 5800);
-
-        // Disparo otimizado (muted + playsinline)
-        const playPromise = heroVideo.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(() => {
-            // Em caso de Low Power Mode da Apple que pause o autoplay, revela a transição
-            setTimeout(triggerActivation, 1200);
+        if (heroVideo) {
+          heroVideo.addEventListener('timeupdate', () => {
+            if (heroVideo.duration && heroVideo.currentTime >= Math.max(0, heroVideo.duration - 1.2)) {
+              reveal();
+            }
           });
+          heroVideo.addEventListener('ended', reveal);
+          heroVideo.addEventListener('error', reveal);
+          const p = heroVideo.play();
+          if (p !== undefined) p.catch(reveal);
+        } else {
+          reveal();
         }
       }
 
@@ -3996,18 +3832,10 @@
         canvas.height = height * dpr;
         ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
         updateProtectedRects();
-        if (typeof dandelions !== 'undefined' && dandelions.length >= 3) {
-          const stage = getHeroStageAnchor();
-          const isMobile = width <= 768;
-          dandelions[0].startX = stage.x;
-          dandelions[0].targetRightX = isMobile ? width * 0.84 : (width > 1024 ? width * 0.74 : width * 0.72);
-          dandelions[0].startY = stage.y;
-          dandelions[1].startX = stage.x + (isMobile ? 44 : 86);
-          dandelions[1].targetRightX = isMobile ? width * 0.91 : (width > 1024 ? width * 0.84 : width * 0.82);
-          dandelions[1].startY = stage.y - (isMobile ? 36 : 54);
-          dandelions[2].startX = stage.x - (isMobile ? 38 : 54);
-          dandelions[2].targetRightX = isMobile ? width * 0.74 : (width > 1024 ? width * 0.65 : width * 0.63);
-          dandelions[2].startY = stage.y + (isMobile ? 46 : 68);
+        if (!dandelionRevealed) {
+          const anchor = getHeroStageAnchor();
+          entity.x = anchor.x;
+          entity.y = anchor.y;
         }
       }
 
@@ -4026,12 +3854,13 @@
         ctx.globalAlpha = Math.max(0, Math.min(1, s.opacity * globalMul));
 
         if (isLead) {
-          const halo = ctx.createRadialGradient(tx, ty, 1, tx, ty, 22 * sc);
-          halo.addColorStop(0, 'rgba(168, 90, 63, 0.12)');
-          halo.addColorStop(1, 'rgba(168, 90, 63, 0)');
+          const halo = ctx.createRadialGradient(tx, ty, 1, tx, ty, 24 * sc);
+          halo.addColorStop(0, 'rgba(168, 90, 63, 0.16)');
+          halo.addColorStop(0.55, 'rgba(212, 162, 128, 0.06)');
+          halo.addColorStop(1, 'rgba(247, 245, 240, 0)');
           ctx.fillStyle = halo;
           ctx.beginPath();
-          ctx.arc(tx, ty, 22 * sc, 0, Math.PI * 2);
+          ctx.arc(tx, ty, 24 * sc, 0, Math.PI * 2);
           ctx.fill();
         }
 
@@ -4086,22 +3915,10 @@
       }
 
       // Desenha o receptáculo alveolar botânico
-      function drawBotanicalReceptacle(hx, hy, sc, stemDirX, stemDirY, alpha) {
+      function drawBotanicalReceptacle(hx, hy, sc, alpha) {
+        if (alpha <= 0.01) return;
         ctx.save();
         ctx.globalAlpha = alpha;
-
-        ctx.strokeStyle = 'rgba(58, 70, 61, 0.50)';
-        ctx.lineWidth = 0.85 * sc;
-        ctx.lineCap = 'round';
-        for (let b = -3; b <= 3; b++) {
-          const spread = b * 0.36;
-          const bx = hx - stemDirX * 3 * sc + Math.cos(spread) * 6.2 * sc;
-          const by = hy + 4 * sc + Math.abs(b) * 1.7 * sc;
-          ctx.beginPath();
-          ctx.moveTo(hx, hy + 1.5 * sc);
-          ctx.quadraticCurveTo(hx + b * 2.1 * sc, hy + 4.8 * sc, bx, by);
-          ctx.stroke();
-        }
 
         const domeGrad = ctx.createRadialGradient(
           hx - 1 * sc, hy - 1 * sc, 0.5 * sc,
@@ -4114,16 +3931,6 @@
         ctx.beginPath();
         ctx.arc(hx, hy, 4.4 * sc, 0, Math.PI * 2);
         ctx.fill();
-
-        ctx.fillStyle = 'rgba(28, 43, 34, 0.44)';
-        for (let p = 0; p < 6; p++) {
-          const ang = (p / 6) * Math.PI * 2;
-          const px = hx + Math.cos(ang) * 2.1 * sc;
-          const py = hy + Math.sin(ang) * 2.1 * sc;
-          ctx.beginPath();
-          ctx.arc(px, py, 0.5 * sc, 0, Math.PI * 2);
-          ctx.fill();
-        }
 
         ctx.restore();
       }
@@ -4143,20 +3950,17 @@
         return { wx, wy };
       }
 
+      // Loop de Renderização Principal
       function render() {
         if (!renderRunning || document.hidden) return;
 
-        const isMobile = width <= 768;
-        time += 0.015;
+        time += 0.02;
         gustImpulse *= 0.96;
         scrollVelocity *= 0.90;
         pointer.speed *= 0.88;
 
-        if (dandelionRevealed) {
-          revealElapsed += 0.016;
-          if (dandelionRevealAlpha < 1) {
-            dandelionRevealAlpha = Math.min(1, dandelionRevealAlpha + 0.024);
-          }
+        if (dandelionRevealed && dandelionRevealAlpha < 1) {
+          dandelionRevealAlpha = Math.min(1, dandelionRevealAlpha + 0.035);
         }
 
         ctx.clearRect(0, 0, width, height);
@@ -4166,167 +3970,150 @@
           return;
         }
 
-        const heroHeight = document.getElementById('inicio')?.offsetHeight || height;
-        const heroVisibility = Math.max(0, Math.min(1, 1 - (scrollY / (heroHeight * 0.92))));
+        const globalAlpha = dandelionRevealAlpha;
+        const isMobile = width <= 768;
 
         // ====================================================================
-        // PARTE 1: AS 3 UNIDADES DE DENTE-DE-LEÃO NA HERO (COM INTERAÇÃO DIRETA)
+        // PARTE 1: ENTIDADE GUIA METAMÓRFICA (FLOR COMPLETA ⇄ SEMENTE-GUIA)
         // ====================================================================
-        if (heroVisibility > 0.01) {
-          // No mobile: atualiza a transição de empurrão para a direita e dissolução das flores
-          if (isMobile) {
-            if (mobileSequenceCompleted) {
-              mobileFlowerAlpha = 0.0;
-              mobilePushProgress = 1.0;
-            } else if (mobilePushed) {
-              if (mobilePushProgress < 1) {
-                mobilePushProgress = Math.min(1, mobilePushProgress + 0.024);
-              }
-              mobileFlowerAlpha = Math.max(0, 1 - easeInOutCubic(mobilePushProgress) * 1.25);
-            }
-          } else {
-            mobileFlowerAlpha = 1.0;
-            mobilePushProgress = 0;
-          }
+        const choreo = computeChoreography();
+        const springK = 0.08 + (choreo.transition || 0) * 0.04;
+        entity.vx = (entity.vx + (choreo.x - entity.x) * springK) * 0.80;
+        entity.vy = (entity.vy + (choreo.y - entity.y) * springK) * 0.80;
 
-          if (!isMobile || mobileFlowerAlpha > 0.005) {
-            for (let dIdx = 0; dIdx < dandelions.length; dIdx++) {
-              const d = dandelions[dIdx];
-              if (d.bloomScale < 1) d.bloomScale = Math.min(1, d.bloomScale + 0.0035);
-
-              const timeGlideRaw = Math.max(0, Math.min(1, (revealElapsed - d.glideDelay) / 2.5));
-              const scrollGlideBoost = Math.min(1, scrollY / 180);
-              const glideProgress = easeInOutCubic(Math.max(timeGlideRaw, scrollGlideBoost));
-
-              let targetX;
-              if (isMobile) {
-                // Antes do texto entrar (Ato 2): fica na posição botânica estável.
-                // Quando o texto entra (Ato 3): empurra os dentes de leão para a direita e fora da tela.
-                targetX = d.startX + easeInOutCubic(mobilePushProgress) * (width * 0.65);
-              } else {
-                targetX = d.startX * (1 - glideProgress) + d.targetRightX * glideProgress;
-              }
-
-              d.prevX = d.currentX;
-              d.currentX += (targetX - d.currentX) * 0.08;
-              const horizontalMotion = d.currentX - d.prevX;
-
-              const headY = d.startY - scrollY * (0.58 + dIdx * 0.07);
-              const headX = d.currentX + Math.sin(d.stemAngle) * 28 * d.scale;
-              d.headX = headX;
-              d.headY = headY;
-
-              // Interação com o Cursor sobre este Dente-de-Leão!
-              let cursorTorque = 0;
-              if (pointer.active) {
-                const dx = headX - pointer.x;
-                const dy = headY - pointer.y;
-                const dist = Math.hypot(dx, dy);
-                const interactRadius = 128 * d.scale;
-
-                if (dist < interactRadius && dist > 1) {
-                  const proximity = (interactRadius - dist) / interactRadius;
-                  cursorTorque = (dx / dist) * proximity * 0.16 + (pointer.vx * 0.0035 * proximity);
-
-                  // Se o cursor estiver se movendo perto da coroa, desprende sementes reais!
-                  if (pointer.speed > 2.2 && Math.random() < (0.18 + proximity * 0.35)) {
-                    const releaseCount = pointer.speed > 14 ? 3 : 1;
-                    detachSeedsFromDandelion(
-                      d,
-                      releaseCount,
-                      (dx / dist) * 0.75 + pointer.vx * 0.09,
-                      (dy / dist) * 0.55 + pointer.vy * 0.07 - 0.35
-                    );
-                  }
-                }
-              }
-
-              // Se o usuário rolar a página rapidamente, o vento do scroll também sopra sementes da flor
-              if (Math.abs(scrollVelocity) > 9 && Math.random() < 0.12) {
-                detachSeedsFromDandelion(d, 1, 0.65, -0.45);
-              }
-
-              const baseWind = 0.24 + Math.sin(time * 0.7 + dIdx * 1.3) * 0.08;
-              const targetStemAngle = Math.max(
-                -0.28,
-                Math.min(0.32, d.restingTilt + baseWind * 0.05 + gustImpulse * 0.08 + horizontalMotion * 0.014 + cursorTorque)
-              );
-              d.stemVel = (d.stemVel + (targetStemAngle - d.stemAngle) * 0.075) * 0.85;
-              d.stemAngle += d.stemVel;
-
-              const baseX = headX - Math.sin(d.stemAngle) * d.stemLength;
-              const baseY = headY + Math.cos(d.stemAngle) * d.stemLength;
-              const flowerAlpha = dandelionRevealAlpha * heroVisibility * d.alphaWeight * (isMobile ? mobileFlowerAlpha : 1.0);
-
-              const sortedCrown = [...d.seeds].sort((a, b) => a.z - b.z);
-
-              const drawAttachedCrownSeed = (s) => {
-                if (!s.attached) {
-                  s.regrowTimer -= 0.016;
-                  if (s.regrowTimer <= 0) {
-                    s.attached = true;
-                    s.opacity = 0.05;
-                  }
-                  return;
-                }
-                const rot = d.stemAngle * 0.65 + Math.sin(time * 1.45 + s.swayPhase) * 0.028;
-                const rx = s.nx * Math.cos(rot) - s.ny * Math.sin(rot);
-                const ry = s.nx * Math.sin(rot) + s.ny * Math.cos(rot);
-                s.x = headX + rx * 5.0 * d.scale * d.bloomScale;
-                s.y = headY + ry * 5.0 * d.scale * d.bloomScale;
-
-                const bend = (baseWind * 0.06 + gustImpulse * 0.11 + cursorTorque * 0.45) * (0.5 + 0.5 * Math.max(0, ry + 0.5));
-                const ba = Math.atan2(ry, rx);
-                let dx = Math.cos(ba) + bend;
-                let dy = Math.sin(ba) - bend * 0.16;
-                const n = Math.hypot(dx, dy) || 1;
-                dx /= n;
-                dy /= n;
-                s.angle = Math.atan2(dy, dx);
-
-                const targetOp = 0.36 + (s.nz + 1) * 0.30 + (1 - Math.abs(s.nz)) * 0.22;
-                s.opacity += (targetOp - s.opacity) * 0.06;
-                s.scale = (0.86 + (s.nz + 1) * 0.11) * d.bloomScale;
-                drawSeedShape(s, flowerAlpha, false);
-              };
-
-              for (const s of sortedCrown) if (s.z < 0) drawAttachedCrownSeed(s);
-
-              // Caule com dissolução suave no papel #F7F5F0
-              ctx.save();
-              ctx.globalAlpha = flowerAlpha;
-              const ctrlX = baseX + (headX - baseX) * 0.45 - 8 * d.scale;
-              const ctrlY = baseY - (baseY - headY) * 0.54;
-
-              const stemGrad = ctx.createLinearGradient(headX, headY, baseX, baseY);
-              stemGrad.addColorStop(0, 'rgba(43, 61, 50, 0.76)');
-              stemGrad.addColorStop(0.68, 'rgba(68, 84, 71, 0.42)');
-              stemGrad.addColorStop(1, 'rgba(247, 245, 240, 0)');
-
-              ctx.strokeStyle = stemGrad;
-              ctx.lineWidth = 2.7 * d.scale;
-              ctx.lineCap = 'round';
-              ctx.beginPath();
-              ctx.moveTo(baseX, baseY);
-              ctx.quadraticCurveTo(ctrlX, ctrlY, headX, headY + 2 * d.scale);
-              ctx.stroke();
-              ctx.restore();
-
-              drawBotanicalReceptacle(headX, headY, d.scale * d.bloomScale, Math.sin(d.stemAngle), Math.cos(d.stemAngle), flowerAlpha);
-
-              for (const s of sortedCrown) if (s.z >= 0) drawAttachedCrownSeed(s);
-            }
+        // Interação com o Cursor
+        if (pointer.active) {
+          const dx = entity.x - pointer.x;
+          const dy = entity.y - pointer.y;
+          const dist = Math.hypot(dx, dy);
+          if (dist < 150 && dist > 1) {
+            const prox = (150 - dist) / 150;
+            entity.vx += (dx / dist) * prox * 0.55;
+            entity.vy += (dy / dist) * prox * 0.45;
           }
         }
 
+        // Repulsão de Conteúdo DOM
+        const avoid = computeContentAvoidance(entity.x, entity.y);
+        const avoidWeight = 1 - (choreo.transition || 0) * 0.70;
+        entity.vx += avoid.pushX * avoidWeight;
+        entity.vy += avoid.pushY * avoidWeight;
+
+        entity.x += entity.vx;
+        entity.y += entity.vy;
+        entity.scale += (choreo.scale - entity.scale) * 0.10;
+        entity.morph += (choreo.morph - entity.morph) * 0.08;
+        entity.axialSpin = choreo.spin;
+
+        const morph = Math.max(0, Math.min(1, entity.morph));
+        const dissolve = 1 - morph;
+        const sc = entity.scale * (1 - morph * 0.18);
+        const ax = entity.x;
+        const ay = entity.y;
+
+        // Sub-parte 1A: Caule + Receptáculo + Coroa de 45 Sementes (quando morph > 0)
+        if (morph > 0.02) {
+          const crownScale = 0.85 * (0.82 + morph * 0.28);
+          const stemAlpha = Math.pow(morph, 1.6) * globalAlpha;
+
+          if (stemAlpha > 0.02) {
+            const sway = Math.sin(time * 1.0) * 0.05 + Math.max(-0.25, Math.min(0.25, entity.vx * 0.035));
+            const stemLen = (isMobile ? 130 : 170) * Math.pow(morph, 0.85);
+            const baseX = ax - Math.sin(sway) * stemLen;
+            const baseY = ay + Math.cos(sway) * stemLen;
+            const ctrlX = baseX + (ax - baseX) * 0.45 - 8 * crownScale;
+            const ctrlY = baseY - (baseY - ay) * 0.54;
+
+            ctx.save();
+            ctx.globalAlpha = stemAlpha;
+            const grad = ctx.createLinearGradient(ax, ay, baseX, baseY);
+            grad.addColorStop(0, 'rgba(43, 61, 50, 0.78)');
+            grad.addColorStop(0.65, 'rgba(68, 84, 71, 0.38)');
+            grad.addColorStop(1, 'rgba(247, 245, 240, 0)');
+            ctx.strokeStyle = grad;
+            ctx.lineWidth = 2.4 * crownScale;
+            ctx.lineCap = 'round';
+            ctx.beginPath();
+            ctx.moveTo(baseX, baseY);
+            ctx.quadraticCurveTo(ctrlX, ctrlY, ax, ay + 2);
+            ctx.stroke();
+            ctx.restore();
+
+            drawBotanicalReceptacle(ax, ay, crownScale, stemAlpha);
+          }
+
+          // Coroa em Espiral Áurea de Fibonacci
+          for (let i = 0; i < entity.crown.length; i++) {
+            const cs = entity.crown[i];
+            const detach = Math.max(0, Math.min(1, dissolve * 1.3 - cs.frac * 0.3));
+            const seedAlpha = (1 - Math.pow(detach, 1.3)) * globalAlpha * 0.92;
+            if (seedAlpha <= 0.02) continue;
+
+            const spin = entity.axialSpin * 0.5 + detach * Math.PI * 2.2;
+            const rx = cs.nx * Math.cos(spin) - cs.nz * Math.sin(spin);
+            const ry = cs.ny;
+            const spiralR = (4.5 + Math.pow(detach, 1.4) * 110) * crownScale;
+            const lift = -Math.pow(detach, 1.5) * 38;
+
+            const sx = ax + rx * spiralR;
+            const sy = ay + ry * (4.5 * crownScale + Math.pow(detach, 1.3) * 64) + lift;
+            const angle = Math.atan2(ry, rx) + detach * 1.3;
+
+            drawSeedShape({
+              x: sx,
+              y: sy,
+              angle,
+              scale: (0.75 + (cs.nz + 1) * 0.1) * crownScale * (1 - detach * 0.2),
+              beakLength: cs.beakLength,
+              pappusRadius: cs.pappusRadius,
+              bristles: cs.bristles,
+              opacity: seedAlpha,
+              attached: morph > 0.8
+            }, 1, false);
+          }
+        }
+
+        // Sub-parte 1B: Semente-Guia Central (sempre presente, guiando a leitura)
+        const dx = Math.cos(entity.angle);
+        const dy = Math.sin(entity.angle);
+        const beakLen = entity.beakLength * sc;
+        const tx = ax + dx * beakLen;
+        const ty = ay + dy * beakLen;
+
+        ctx.save();
+        ctx.globalAlpha = globalAlpha;
+
+        const haloR = (24 + (choreo.transition || 0) * 20) * sc;
+        const halo = ctx.createRadialGradient(tx, ty, 1, tx, ty, haloR);
+        halo.addColorStop(0, `rgba(168, 90, 63, ${(0.16 + (choreo.transition || 0) * 0.14).toFixed(3)})`);
+        halo.addColorStop(0.55, 'rgba(212, 162, 128, 0.07)');
+        halo.addColorStop(1, 'rgba(247, 245, 240, 0)');
+        ctx.fillStyle = halo;
+        ctx.beginPath();
+        ctx.arc(tx, ty, haloR, 0, Math.PI * 2);
+        ctx.fill();
+
+        drawSeedShape({
+          x: ax,
+          y: ay,
+          angle: entity.angle,
+          scale: sc,
+          beakLength: entity.beakLength,
+          pappusRadius: entity.pappusRadius,
+          bristles: entity.bristles,
+          opacity: 0.95,
+          attached: false
+        }, globalAlpha, true);
+
+        ctx.restore();
+
         // ====================================================================
-        // PARTE 2: VOO LIVRE E ALEATÓRIO DAS SEMENTES + DESVIO DE CONTEÚDO
+        // PARTE 2: VOO LIVRE E ALEATÓRIO DAS SEMENTES AMBIENTAIS
         // ====================================================================
         for (let i = 0; i < freeSeeds.length; i++) {
           const s = freeSeeds[i];
           if (s.fadeIn < 1) s.fadeIn = Math.min(1, s.fadeIn + 0.03);
 
-          // 1. Amostragem do campo de vento 2D + errância individual aleatória (wander)
           s.wanderTheta += (Math.random() - 0.5) * 0.14 + Math.sin(time * 0.8 + s.swayPhase) * s.wanderSpeed;
           const wind = sampleWindField(s.x, s.y, time);
           const wanderAx = Math.cos(s.wanderTheta) * 0.045;
@@ -4335,46 +4122,31 @@
           s.vx += (wind.wx * 0.35 + wanderAx) * 0.08;
           s.vy += (wind.wy * s.buoyancy + wanderAy - scrollVelocity * 0.0045) * 0.08;
 
-          // Se for a Semente-Guia, mantém presença constante na área visível da janela (apenas desktop)
-          if (s.isLead && !isMobile) {
-            const preferredX = width > 1024 ? width * 0.84 : width * 0.80;
-            const preferredY = height * 0.46;
-            s.vx += (preferredX + Math.sin(time * 0.65) * 68 - s.x) * 0.0018;
-            s.vy += (preferredY + Math.cos(time * 0.52) * 85 - s.y) * 0.0018;
-          }
-
-          // 2. Interação Aerodinâmica com o Cursor (Sopro & Vórtice Suave)
           if (pointer.active) {
-            const dx = s.x - pointer.x;
-            const dy = s.y - pointer.y;
-            const dist = Math.hypot(dx, dy);
-            const wakeRadius = 155;
-
-            if (dist < wakeRadius && dist > 1) {
-              const force = Math.pow((wakeRadius - dist) / wakeRadius, 1.4);
-              const nx = dx / dist;
-              const ny = dy / dist;
-              s.vx += (nx * 0.38 + pointer.vx * 0.032 - ny * 0.14) * force;
-              s.vy += (ny * 0.38 + pointer.vy * 0.032 + nx * 0.14) * force;
-              s.angVel += (pointer.vx * 0.0022) * force;
+            const dxP = s.x - pointer.x;
+            const dyP = s.y - pointer.y;
+            const distP = Math.hypot(dxP, dyP);
+            const wakeRadius = 140;
+            if (distP < wakeRadius && distP > 1) {
+              const force = Math.pow((wakeRadius - distP) / wakeRadius, 1.4);
+              s.vx += (dxP / distP * 0.38 + pointer.vx * 0.03) * force;
+              s.vy += (dyP / distP * 0.38 + pointer.vy * 0.03) * force;
+              s.angVel += (pointer.vx * 0.002) * force;
             }
           }
 
-          // 3. Campo de Contorno de Conteúdo (Desvia suavemente de qualquer bloco de texto/foto)
           const avoidance = computeContentAvoidance(s.x, s.y);
           s.vx += avoidance.pushX;
           s.vy += avoidance.pushY;
 
-          // Amortecimento viscoso do ar (velocidade terminal suave de paraquedas)
           s.vx *= 0.955;
           s.vy *= 0.955;
-          s.vx = Math.max(-2.6, Math.min(2.6, s.vx));
-          s.vy = Math.max(-2.2, Math.min(2.2, s.vy));
+          s.vx = Math.max(-2.4, Math.min(2.4, s.vx));
+          s.vy = Math.max(-2.0, Math.min(2.0, s.vy));
 
           s.x += s.vx;
           s.y += s.vy;
 
-          // Reciclagem orgânica nas bordas da tela
           if (s.x > width + 60) {
             const sp = pickFreeSpawnPoint(false);
             s.x = -35;
@@ -4394,21 +4166,32 @@
             s.y = -45;
           }
 
-          // 4. Física de Pêndulo-Paraquedas (umbela no topo, inclinando conforme a aceleração lateral)
           const targetPendulumAngle = -Math.PI * 0.5 +
             Math.max(-0.34, Math.min(0.34, s.vx * 0.18)) +
             Math.sin(time * 1.4 + s.swayPhase) * 0.085;
           s.angVel = (s.angVel + (targetPendulumAngle - s.angle) * 0.09) * 0.82;
           s.angle += s.angVel;
 
-          const effectiveAlpha = dandelionRevealAlpha * s.fadeIn * avoidance.alphaFactor * (isMobile ? 0.75 : 1.0);
-          drawSeedShape(s, effectiveAlpha, s.isLead && !isMobile);
+          const effectiveAlpha = dandelionRevealAlpha * s.fadeIn * avoidance.alphaFactor * (isMobile ? 0.72 : 0.95);
+          drawSeedShape(s, effectiveAlpha, false);
         }
 
         if (renderRunning && !document.hidden) {
           requestAnimationFrame(render);
         }
       }
+
+      window.__getDebugState = () => ({
+        renderRunning,
+        dandelionRevealed,
+        dandelionRevealAlpha,
+        entityMorph: entity.morph,
+        entityPos: { x: entity.x, y: entity.y },
+        freeSeedsCount: freeSeeds.length,
+        width,
+        height
+      });
+
 
       // ========================================================================
       // CONTROLADOR DA EXPERIÊNCIA MOBILE (DRAWER DE NAVEGAÇÃO & STICKY THUMB-BAR)
