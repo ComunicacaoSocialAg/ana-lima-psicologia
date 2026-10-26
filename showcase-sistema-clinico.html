@@ -1,0 +1,1118 @@
+<!DOCTYPE html>
+<html lang="pt-BR" class="scroll-smooth">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Sistema de Gestão Clínica & Prontuário Psicológico • Documento Técnico & Showcase do Software</title>
+  
+  <!-- Fontes de Alta Fidelidade: Plus Jakarta Sans + Playfair Display + JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:ital,wght@0,300;0,400;0,500;0,600;0,700;0,800;1,400;1,600&family=Playfair+Display:ital,wght@0,500;0,600;0,700;1,400&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  
+  <!-- Tailwind CSS via CDN com Cores Fielmente Mapeadas ao Sistema Real -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['"Plus Jakarta Sans"', 'sans-serif'],
+            serif: ['"Playfair Display"', 'serif'],
+            mono: ['"JetBrains Mono"', 'monospace'],
+          },
+          colors: {
+            app: {
+              sidebar: '#1C2B22',      // Sidebar real do sistema
+              active: '#0f9f80',       // Verde teal ativo da navegação
+              header: '#FFFFFF',
+              canvas: '#F1F5F9',       // Fundo slate suave do app
+              card: '#FFFFFF',
+              border: '#E2E8F0',
+              banner: '#2A3C31',       // Banner de instalação PWA
+            },
+            forest: {
+              900: '#111D16',
+              800: '#1C2B22',
+              700: '#2A4033',
+              600: '#3D5C4A',
+              100: '#E8F0EA',
+              50: '#F4F7F5',
+            },
+            sage: {
+              DEFAULT: '#0f9f80',
+              light: '#14b896',
+              soft: '#E6F7F3',
+            }
+          },
+          boxShadow: {
+            'subtle': '0 1px 3px rgba(0, 0, 0, 0.05)',
+            'card': '0 4px 20px -2px rgba(15, 23, 42, 0.05)',
+            'window': '0 25px 60px -15px rgba(28, 43, 34, 0.2), 0 0 0 1px rgba(28, 43, 34, 0.08)',
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    body {
+      background-color: #F8FAFC;
+      color: #1E293B;
+      font-feature-settings: "cv02", "cv03", "cv04", "cv11";
+      overflow-x: hidden;
+    }
+
+    /* Scrollbar refinada */
+    ::-webkit-scrollbar {
+      width: 7px;
+      height: 7px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #F1F5F9;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #CBD5E1;
+      border-radius: 9999px;
+    }
+    ::-webkit-scrollbar-thumb:hover {
+      background: #0f9f80;
+    }
+
+    /* Efeito de Modo Privacidade (Borramento Instantâneo) */
+    .privacy-blurred {
+      filter: blur(6px);
+      user-select: none;
+      transition: filter 0.25s ease;
+    }
+
+    /* Transição suave entre telas reais do sistema */
+    .app-screen {
+      display: none;
+      opacity: 0;
+      transform: translateY(6px);
+      transition: opacity 0.3s cubic-bezier(0.16, 1, 0.3, 1), transform 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+    }
+    .app-screen.active {
+      display: block;
+      opacity: 1;
+      transform: translateY(0);
+    }
+
+    /* Papel Timbrado do Recibo Fiscal IRPF */
+    .receipt-paper {
+      background: #FFFFFF;
+      box-shadow: 0 20px 40px -10px rgba(0, 0, 0, 0.08), 0 0 0 1px #E2E8F0;
+    }
+  </style>
+</head>
+<body class="selection:bg-teal-500/20 selection:text-teal-900">
+
+  <!-- ========================================================================= -->
+  <!-- BARRA DE NAVEGAÇÃO DA LANDING PAGE                                        -->
+  <!-- ========================================================================= -->
+  <header class="fixed top-0 left-0 right-0 z-50 bg-white/95 backdrop-blur-md border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 h-20 flex items-center justify-between">
+      
+      <!-- Logo do Sistema -->
+      <a href="#inicio" class="flex items-center space-x-3.5 group">
+        <div class="w-11 h-11 rounded-2xl bg-[#1C2B22] flex items-center justify-center text-white shadow-subtle group-hover:bg-slate-900 transition">
+          <!-- Símbolo Dente de Leão Original -->
+          <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round">
+            <circle cx="12" cy="12" r="2" />
+            <path d="M12 2v4" />
+            <path d="M12 18v4" />
+            <path d="M4.93 4.93l2.83 2.83" />
+            <path d="M16.24 16.24l2.83 2.83" />
+            <path d="M2 12h4" />
+            <path d="M18 12h4" />
+            <path d="M4.93 19.07l2.83-2.83" />
+            <path d="M16.24 7.76l2.83-2.83" />
+          </svg>
+        </div>
+        <div>
+          <span class="font-bold tracking-tight text-slate-900 text-lg block font-sans">Sistema de Gestão Clínica</span>
+          <span class="text-xs text-slate-500 font-medium">Plataforma Especializada para Psicologia • CFP 001/2009</span>
+        </div>
+      </a>
+
+      <!-- Menu Principal -->
+      <nav class="hidden md:flex items-center space-x-1 text-xs font-semibold text-slate-700 uppercase tracking-wider">
+        <a href="#telas-reais" class="px-3.5 py-2 rounded-xl hover:bg-slate-100 transition text-teal-700 font-bold">Ver Sistema em Execução</a>
+        <a href="#jornada" class="px-3.5 py-2 rounded-xl hover:bg-slate-100 transition">Jornada Clínica</a>
+        <a href="#rotinas" class="px-3.5 py-2 rounded-xl hover:bg-slate-100 transition">Rotinas do Consultório</a>
+        <a href="#funcionalidades" class="px-3.5 py-2 rounded-xl hover:bg-slate-100 transition">Funcionalidades</a>
+        <a href="#calculadora" class="px-3.5 py-2 rounded-xl hover:bg-slate-100 transition">Simulador</a>
+      </nav>
+
+      <!-- Ação Rápida -->
+      <div>
+        <a href="#telas-reais" class="px-5 py-2.5 rounded-xl bg-[#0f9f80] hover:bg-teal-600 text-white text-xs font-bold tracking-wide transition shadow-sm flex items-center space-x-2">
+          <span>Abrir Telas do Sistema</span>
+          <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M5 12h14M12 5l7 7-7 7"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </header>
+
+  <!-- ========================================================================= -->
+  <!-- HERO SECTION: APRESENTAÇÃO DO SISTEMA REAL                                -->
+  <!-- ========================================================================= -->
+  <section id="inicio" class="pt-32 pb-16 md:pt-40 md:pb-24 relative bg-gradient-to-b from-white via-slate-50 to-slate-100 border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 text-center relative z-10">
+      
+      <div class="inline-flex items-center space-x-2 px-4 py-1.5 rounded-full bg-teal-50 border border-teal-200 text-xs font-semibold text-teal-800 mb-6">
+        <span class="w-2 h-2 rounded-full bg-teal-500 animate-ping"></span>
+        <span>Software em Produção • PWA Instalável no Desktop e Celular</span>
+      </div>
+
+      <h1 class="text-4xl sm:text-5xl md:text-6xl font-serif text-slate-900 tracking-tight max-w-4xl mx-auto leading-[1.15]">
+        O sistema de gestão que coloca a <span class="text-teal-700 italic">prática clínica</span> e a tranquilidade ética no centro de tudo.
+      </h1>
+
+      <p class="mt-6 text-base sm:text-lg text-slate-600 max-w-3xl mx-auto leading-relaxed font-normal">
+        Desenvolvido sob medida para a rotina diária de psicólogos clínicos: prontuário imutável conforme a Resolução CFP 001/2009, triagem online com consentimento LGPD, confirmação ativa no WhatsApp, teleconsulta integrada e emissão de recibos fiscais para o Carnê-Leão.
+      </p>
+
+      <div class="mt-8 flex flex-wrap justify-center gap-4">
+        <a href="#telas-reais" class="px-7 py-3.5 rounded-xl bg-[#1C2B22] hover:bg-slate-900 text-white font-bold text-xs uppercase tracking-wider transition shadow-card flex items-center space-x-2">
+          <span>Explorar as Telas Reais Abaixo</span>
+          <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M19 9l-7 7-7-7"/></svg>
+        </a>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- SEÇÃO PRINCIPAL: O SISTEMA REAL REPRODUZIDO COM PRECISÃO CIRÚRGICA       -->
+  <!-- ========================================================================= -->
+  <section id="telas-reais" class="py-16 md:py-24 bg-slate-100">
+    <div class="max-w-[1440px] mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-10">
+        <span class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-100 px-3.5 py-1.5 rounded-full border border-teal-200">
+          Software Real em Execução
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-serif text-slate-900 mt-4 tracking-tight">
+          Navegue pelas interfaces do sistema
+        </h2>
+        <p class="text-sm text-slate-600 mt-2">
+          Esta é a interface que roda no navegador ou app instalado. Use a barra de navegação à esquerda ou os botões para interagir com o fluxo completo.
+        </p>
+      </div>
+
+      <!-- MOLDURA DO NAVEGADOR GOOGLE CHROME (REPRODUZINDO FIELMENTE A EXPERIÊNCIA) -->
+      <div class="rounded-3xl shadow-window overflow-hidden border border-slate-300 bg-white">
+        
+        <!-- Barra de Janela do Google Chrome -->
+        <div class="bg-[#202124] px-4 py-2.5 flex items-center justify-between text-slate-300 text-xs">
+          <div class="flex items-center space-x-3">
+            <div class="flex space-x-1.5">
+              <span class="w-3 h-3 rounded-full bg-[#ED6A5E] inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-[#F5BF4F] inline-block"></span>
+              <span class="w-3 h-3 rounded-full bg-[#62C554] inline-block"></span>
+            </div>
+            <div class="flex items-center space-x-2 bg-[#2D2E31] px-4 py-1.5 rounded-lg text-slate-200 text-xs font-sans">
+              <span class="w-2 h-2 rounded-full bg-teal-400"></span>
+              <span class="font-medium">Gestão Clínica Psicológica</span>
+              <span class="text-slate-500 ml-2">×</span>
+            </div>
+          </div>
+
+          <!-- Barra de Endereço URL Real -->
+          <div class="flex items-center bg-[#28292C] px-6 py-1 rounded-full text-slate-300 text-xs font-mono max-w-md w-full justify-center space-x-2">
+            <svg class="w-3.5 h-3.5 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+            <span>ana-lima-psi-app.web.app</span>
+          </div>
+
+          <div class="flex items-center space-x-2 text-[11px] text-slate-400">
+            <span class="px-2 py-0.5 rounded bg-[#333538] text-slate-200 font-sans">Abrir no app</span>
+          </div>
+        </div>
+
+        <!-- APLICAÇÃO REAL COMPLETA: SIDEBAR + CONTEÚDO -->
+        <div class="flex flex-col md:flex-row min-h-[820px] bg-slate-50 text-slate-800 font-sans">
+          
+          <!-- SIDEBAR REAL DO SISTEMA (#1C2B22) -->
+          <aside class="w-full md:w-64 bg-[#1C2B22] text-[#F7F5F0] flex flex-col shrink-0 border-r border-[#F7F5F0]/10 select-none">
+            
+            <!-- Perfil da Psicóloga no Topo da Sidebar -->
+            <div class="p-5 border-b border-[#F7F5F0]/10">
+              <div class="flex items-center gap-3">
+                <div class="relative">
+                  <div class="w-12 h-12 rounded-2xl bg-[#3f4a3d] border border-[#F7F5F0]/20 flex items-center justify-center text-white shadow-md">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <circle cx="12" cy="12" r="2" />
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4M4.93 19.07l2.83-2.83M16.24 7.76l2.83-2.83" />
+                    </svg>
+                  </div>
+                  <div class="w-3.5 h-3.5 bg-emerald-500 rounded-full border-2 border-[#1C2B22] absolute -bottom-0.5 -right-0.5"></div>
+                </div>
+                <div class="overflow-hidden">
+                  <h2 class="font-semibold text-white truncate text-base leading-tight">Ana Lima</h2>
+                  <p class="text-xs text-teal-400 font-medium mt-0.5">CRP 04/60205</p>
+                  <p class="text-[10px] text-slate-400 truncate">Psicologia Clínica</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Navegação da Sidebar com Itens Reais -->
+            <nav class="flex-1 px-3 py-4 space-y-1 text-sm font-medium">
+              <button onclick="switchRealScreen('dashboard')" id="nav-dashboard" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-semibold transition-all bg-[#0f9f80] text-white shadow-sm">
+                <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="7" height="9" x="3" y="3" rx="1"/><rect width="7" height="5" x="14" y="3" rx="1"/><rect width="7" height="9" x="14" y="12" rx="1"/><rect width="7" height="5" x="3" y="16" rx="1"/></svg>
+                <span>Dashboard</span>
+              </button>
+
+              <button onclick="switchRealScreen('schedule')" id="nav-schedule" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-white/5">
+                <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                <span>Agenda & Sessões</span>
+              </button>
+
+              <button onclick="switchRealScreen('patients')" id="nav-patients" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-white/5">
+                <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                <span>Pacientes & Prontuários</span>
+              </button>
+
+              <button onclick="switchRealScreen('financial')" id="nav-financial" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-white/5">
+                <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                <span>Financeiro & Recibos</span>
+              </button>
+
+              <button onclick="switchRealScreen('intake')" id="nav-intake" class="nav-btn w-full flex items-center gap-3 px-3.5 py-2.5 rounded-xl text-sm font-medium transition-all text-slate-300 hover:text-white hover:bg-white/5">
+                <svg class="w-4 h-4 text-slate-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M14.5 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V7.5L14.5 2z"/><polyline points="14 2 14 8 20 8"/></svg>
+                <span>Triagem Online LGPD</span>
+              </button>
+            </nav>
+
+            <!-- Rodapé de Segurança e Backup da Sidebar -->
+            <div class="p-4 border-t border-slate-800 space-y-2 bg-black/20 text-xs">
+              <div class="flex items-center justify-between text-slate-400 px-1">
+                <span class="flex items-center gap-1.5">
+                  <svg class="w-3.5 h-3.5 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z"/></svg>
+                  <span>LGPD / CFP Ativo</span>
+                </span>
+                <span class="text-emerald-400 font-semibold text-[10px]">Seguro</span>
+              </div>
+
+              <button onclick="alert('Backup dos prontuários realizado com sucesso em arquivo cifrado .enc.json')" class="w-full flex items-center justify-center gap-2 px-3 py-2 bg-slate-800/80 hover:bg-slate-700 text-white rounded-xl text-xs font-semibold transition border border-slate-700">
+                <svg class="w-3.5 h-3.5 text-teal-400" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" x2="12" y1="15" y2="3"/></svg>
+                <span>Backup em 1 Clique</span>
+              </button>
+
+              <button onclick="togglePrivacyMode()" class="w-full flex items-center justify-center gap-1.5 py-1 text-slate-400 hover:text-slate-200 text-[11px] transition">
+                <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="11" x="3" y="11" rx="2" ry="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+                <span>Bloquear Tela / Privacidade</span>
+              </button>
+            </div>
+
+          </aside>
+
+          <!-- ÁREA PRINCIPAL DA APLICAÇÃO -->
+          <div class="flex-1 flex flex-col overflow-y-auto">
+            
+            <!-- HEADER SUPERIOR REAL DO SISTEMA -->
+            <header class="bg-white px-6 py-3.5 border-b border-slate-200 flex flex-wrap items-center justify-between gap-4 sticky top-0 z-30">
+              
+              <!-- Título da Tela & Subtítulo -->
+              <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-[#1C2B22] flex items-center justify-center text-white shrink-0">
+                  <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                    <circle cx="12" cy="12" r="2" />
+                    <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" />
+                  </svg>
+                </div>
+                <div>
+                  <div class="flex items-center gap-2">
+                    <h2 class="text-base font-bold text-slate-900 leading-none">Painel Geral</h2>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700 border border-slate-200">CRP 04/60205</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1">Visão executiva do consultório e indicadores clínicos</p>
+                </div>
+              </div>
+
+              <!-- Controles Rápidos da Barra Superior -->
+              <div class="flex items-center flex-wrap gap-2 text-xs">
+                
+                <div class="flex items-center gap-1.5 px-3 py-1.5 bg-slate-100 text-slate-700 rounded-xl font-medium border border-slate-200">
+                  <svg class="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                  <span>Quinta-Feira, 15 de Outubro</span>
+                </div>
+
+                <button class="flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                  <svg class="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"/></svg>
+                  <span>Conectar Nuvem</span>
+                </button>
+
+                <!-- Notificações com Badge -->
+                <button class="relative p-2 bg-white text-slate-600 border border-slate-200 rounded-xl hover:bg-slate-50 transition">
+                  <svg class="w-4 h-4" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M6 8a6 6 0 0 1 12 0c0 7 3 9 3 9H3s3-2 3-9"/><path d="M10.3 21a1.94 1.94 0 0 0 3.4 0"/></svg>
+                  <span class="absolute -top-1 -right-1 w-4 h-4 bg-rose-500 text-white rounded-full text-[9px] font-bold flex items-center justify-center">4</span>
+                </button>
+
+                <!-- Botão Privacidade Real -->
+                <button onclick="togglePrivacyMode()" id="btn-privacy-toggle" class="flex items-center gap-1.5 px-3 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition font-medium">
+                  <svg id="icon-eye-open" class="w-3.5 h-3.5 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>
+                  <svg id="icon-eye-closed" class="w-3.5 h-3.5 text-rose-600 hidden" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9.88 9.88a3 3 0 1 0 4.24 4.24"/><path d="M10.73 5.08A10.43 10.43 0 0 1 12 5c7 0 10 7 10 7a13.16 13.16 0 0 1-1.67 2.68"/><path d="M6.61 6.61A13.526 13.526 0 0 0 2 12s3 7 10 7a9.74 9.74 0 0 0 5.39-1.61"/><line x1="2" x2="22" y1="2" y2="22"/></svg>
+                  <span id="text-privacy-toggle">Privacidade</span>
+                </button>
+
+                <button class="flex items-center gap-1.5 px-3.5 py-1.5 bg-white text-slate-700 border border-slate-200 rounded-xl hover:bg-slate-50 transition font-medium">
+                  <svg class="w-3.5 h-3.5 text-slate-500" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><line x1="19" x2="19" y1="8" y2="14"/><line x1="22" x2="16" y1="11" y2="11"/></svg>
+                  <span>+ Novo Paciente</span>
+                </button>
+
+                <button class="flex items-center gap-1.5 px-4 py-1.5 bg-[#0f9f80] hover:bg-teal-600 text-white rounded-xl font-bold shadow-xs transition">
+                  <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                  <span>+ Agendar Sessão</span>
+                </button>
+
+              </div>
+            </header>
+
+            <!-- ============================================================= -->
+            <!-- TELA REAL 1: DASHBOARD (IDÊNTICO AO SCREENSHOT DO SISTEMA)     -->
+            <!-- ============================================================= -->
+            <div id="screen-dashboard" class="app-screen active p-4 sm:p-6 space-y-5">
+              
+              <!-- Banner PWA Real do Sistema -->
+              <div class="bg-[#2A3C31] text-white px-4 py-2.5 rounded-xl flex items-center justify-between text-xs border border-white/10">
+                <div class="flex items-center gap-2">
+                  <span class="font-bold text-teal-300">App Ana Lima • Sistema Clínica & Agenda</span>
+                  <span class="text-slate-300 hidden sm:inline">- Instale o aplicativo nativo na tela inicial do seu Android, iPhone ou Computador</span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <button class="px-3 py-1 bg-white hover:bg-slate-100 text-slate-900 font-bold rounded-lg text-xs shadow-xs transition">
+                    Instalar App
+                  </button>
+                  <button class="text-slate-400 hover:text-white">✕</button>
+                </div>
+              </div>
+
+              <!-- Banner Escuro de Boas-Vindas (#1C2B22) -->
+              <div class="bg-[#1C2B22] text-[#F7F5F0] rounded-2xl p-6 shadow-sm border border-[#F7F5F0]/10 flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
+                <div class="flex items-start sm:items-center gap-4">
+                  <div class="w-14 h-14 rounded-2xl bg-[#3f4a3d] border border-[#F7F5F0]/25 flex items-center justify-center text-white shrink-0 hidden sm:flex shadow-md">
+                    <svg class="w-7 h-7" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+                      <circle cx="12" cy="12" r="2" />
+                      <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" />
+                    </svg>
+                  </div>
+                  <div class="space-y-1">
+                    <div class="flex items-center gap-2">
+                      <span class="text-[11px] font-bold px-2.5 py-0.5 rounded-full bg-[#F7F5F0] text-[#1C2B22]">
+                        CRP 04/60205
+                      </span>
+                      <span class="text-xs text-[#F7F5F0]/75">Consultório de Psicologia Clínica</span>
+                    </div>
+                    <h2 class="text-2xl font-bold tracking-tight text-[#F7F5F0]">
+                      Olá, Psicóloga Ana Lima
+                    </h2>
+                    <p class="text-xs text-[#F7F5F0]/80 max-w-xl">
+                      Nenhum atendimento agendado para hoje. Excelente momento para revisar prontuários e gerenciar a lista de espera.
+                    </p>
+                  </div>
+                </div>
+
+                <div class="flex items-center gap-2 shrink-0">
+                  <button class="flex items-center gap-1.5 px-4 py-2 bg-[#F7F5F0] hover:bg-white text-[#1C2B22] text-xs font-bold rounded-xl shadow-xs transition">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><path d="M12 5v14M5 12h14"/></svg>
+                    <span>+ Agendar Sessão</span>
+                  </button>
+                  <button class="flex items-center gap-1.5 px-4 py-2 bg-[#1C2B22] hover:bg-white/10 text-[#F7F5F0] border border-[#F7F5F0]/30 text-xs font-semibold rounded-xl transition">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <span>Cadastrar Paciente</span>
+                  </button>
+                </div>
+              </div>
+
+              <!-- 4 Cartões de Indicadores Chave (Exatos como no Screenshot) -->
+              <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                
+                <!-- Card 1: Pacientes Ativos -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-subtle hover:border-teal-500/40 transition">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Pacientes Ativos</span>
+                    <div class="p-2 rounded-xl bg-teal-50 text-teal-600">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M22 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-slate-900 font-mono">0</span>
+                    <span class="text-xs text-slate-500">em acompanhamento</span>
+                  </div>
+                  <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>0 na fila de espera</span>
+                    <span class="text-teal-600 font-semibold cursor-pointer hover:underline">Ver todos &rarr;</span>
+                  </div>
+                </div>
+
+                <!-- Card 2: Sessões no Mês -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-subtle hover:border-blue-500/40 transition">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Sessões no Mês</span>
+                    <div class="p-2 rounded-xl bg-blue-50 text-blue-600">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect width="18" height="18" x="3" y="4" rx="2" ry="2"/><line x1="16" x2="16" y1="2" y2="6"/><line x1="8" x2="8" y1="2" y2="6"/><line x1="3" x2="21" y1="10" y2="10"/></svg>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-slate-900 font-mono">0</span>
+                    <span class="text-xs text-slate-500">de 0 agendadas</span>
+                  </div>
+                  <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span class="text-slate-600 font-medium">Taxa de falta: 0%</span>
+                    <span class="text-teal-600 font-semibold cursor-pointer hover:underline">Ver agenda &rarr;</span>
+                  </div>
+                </div>
+
+                <!-- Card 3: Faturamento Realizado -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-subtle hover:border-emerald-500/40 transition">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Faturamento Realizado</span>
+                    <div class="p-2 rounded-xl bg-emerald-50 text-emerald-600">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="12" x2="12" y1="2" y2="22"/><path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"/></svg>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-slate-900 font-mono privacy-field">R$ 0</span>
+                    <span class="text-xs text-slate-500">recebido</span>
+                  </div>
+                  <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span>Previsto: R$ 0</span>
+                    <span class="text-amber-600 font-medium privacy-field">R$ 0 pendente</span>
+                  </div>
+                </div>
+
+                <!-- Card 4: Evoluções Pendentes -->
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-subtle hover:border-rose-500/40 transition">
+                  <div class="flex items-center justify-between">
+                    <span class="text-xs font-bold text-slate-500 uppercase tracking-wider">Evoluções Pendentes</span>
+                    <div class="p-2 rounded-xl bg-slate-100 text-slate-500">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><line x1="12" x2="12" y1="8" y2="12"/><line x1="12" x2="12.01" y1="16" y2="16"/></svg>
+                    </div>
+                  </div>
+                  <div class="mt-3 flex items-baseline gap-2">
+                    <span class="text-2xl font-bold text-slate-900 font-mono">0</span>
+                    <span class="text-xs text-slate-500">sessões sem evolução</span>
+                  </div>
+                  <div class="mt-3 pt-3 border-t border-slate-100 flex items-center justify-between text-xs text-slate-500">
+                    <span class="text-emerald-600 font-medium">CFP 001/2009</span>
+                    <span>0% online</span>
+                  </div>
+                </div>
+
+              </div>
+
+              <!-- Painel de Tarefas Operacionais da Clínica -->
+              <div class="bg-white rounded-2xl border border-slate-200 shadow-subtle overflow-hidden">
+                <div class="p-4 border-b border-slate-200 bg-slate-50/70 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div class="flex items-center gap-2.5">
+                    <div class="p-2 bg-[#0f9f80] text-white rounded-xl shadow-xs">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="m3 17 2 2 4-4"/><path d="m3 7 2 2 4-4"/><path d="M13 6h8"/><path d="M13 12h8"/><path d="M13 18h8"/></svg>
+                    </div>
+                    <div>
+                      <div class="flex items-center gap-2">
+                        <h3 class="font-bold text-sm text-slate-900">Tarefas Operacionais da Clínica</h3>
+                        <span class="text-xs font-bold px-2 py-0.5 rounded-full bg-teal-100 text-teal-800">
+                          0 pendência(s)
+                        </span>
+                      </div>
+                      <p class="text-xs text-slate-500">
+                        Confirmações, envio de links do Meet, cobranças e mensagens para pacientes ou responsáveis
+                      </p>
+                    </div>
+                  </div>
+
+                  <!-- Toggle Hoje vs Semana -->
+                  <div class="flex items-center bg-slate-200/70 p-1 rounded-xl shrink-0">
+                    <button class="px-3 py-1 text-xs font-semibold rounded-lg bg-white text-slate-900 shadow-xs">
+                      Hoje (15/10)
+                    </button>
+                    <button class="px-3 py-1 text-xs font-semibold rounded-lg text-slate-600 hover:text-slate-900">
+                      Esta Semana
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Abas Filtros de Tarefa -->
+                <div class="p-4 border-b border-slate-100 flex flex-wrap gap-2 text-xs">
+                  <button class="px-3 py-1.5 rounded-xl bg-teal-700 text-white font-bold">Todas (0)</button>
+                  <button class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium">Enviar Confirmações (0)</button>
+                  <button class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium">Links do Google Meet (0)</button>
+                  <button class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium">Prontuários Pendentes (0)</button>
+                  <button class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 hover:bg-slate-200 font-medium">Cobranças & PIX (0)</button>
+                </div>
+
+                <!-- Estado Vazio das Tarefas (Exato como na Imagem) -->
+                <div class="p-12 text-center space-y-2">
+                  <div class="w-12 h-12 rounded-full bg-emerald-100 text-emerald-600 flex items-center justify-center mx-auto">
+                    <svg class="w-6 h-6" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><polyline points="20 6 9 17 4 12"/></svg>
+                  </div>
+                  <h4 class="font-bold text-slate-800 text-sm">Tudo em dia para o dia de hoje!</h4>
+                  <p class="text-xs text-slate-500 max-w-md mx-auto">Nenhuma confirmação pendente, link em atraso ou prontuário desatualizado.</p>
+                </div>
+              </div>
+
+              <!-- Linha Inferior: Sessões Programadas & Modalidade dos Atendimentos -->
+              <div class="grid grid-cols-1 lg:grid-cols-3 gap-5">
+                
+                <!-- Sessões de Hoje -->
+                <div class="lg:col-span-2 bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle flex flex-col justify-between">
+                  <div class="flex items-center justify-between pb-3 border-b border-slate-100">
+                    <span class="text-xs font-bold text-slate-800 uppercase flex items-center gap-2">
+                      <svg class="w-4 h-4 text-teal-600" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 14 14"/></svg>
+                      <span>Sessões Programadas para Hoje</span>
+                      <span class="px-2 py-0.5 rounded-full bg-slate-100 text-slate-600 text-[10px]">0</span>
+                    </span>
+                    <button onclick="switchRealScreen('schedule')" class="text-xs text-teal-600 font-semibold hover:underline">
+                      Ver Agenda Completa &rarr;
+                    </button>
+                  </div>
+
+                  <div class="py-12 text-center space-y-1.5">
+                    <div class="w-10 h-10 rounded-full bg-slate-100 text-slate-400 flex items-center justify-center mx-auto">
+                      <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="20 6 9 17 4 12"/></svg>
+                    </div>
+                    <p class="text-xs font-bold text-slate-700">Nenhum atendimento agendado para hoje.</p>
+                    <p class="text-[11px] text-slate-400">Aproveite para organizar prontuários ou contatar a lista de espera.</p>
+                  </div>
+                </div>
+
+                <!-- Modalidade dos Atendimentos (Gráfico de Rosca / Donut) -->
+                <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle flex flex-col justify-between">
+                  <div class="flex items-center justify-between pb-3 border-b border-slate-100 text-xs">
+                    <span class="font-bold text-slate-800 uppercase tracking-wider">Modalidade dos Atendimentos</span>
+                    <span class="text-slate-500">Total: 0</span>
+                  </div>
+
+                  <div class="py-8 text-center space-y-2">
+                    <div class="w-24 h-24 rounded-full border-4 border-slate-100 flex items-center justify-center mx-auto text-slate-400 font-bold text-sm">
+                      0%
+                    </div>
+                    <p class="text-xs font-bold text-slate-700">Nenhuma sessão registrada</p>
+                    <p class="text-[10px] text-slate-400">A proporção aparecerá automaticamente ao agendar sessões.</p>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- TELA REAL 2: AGENDA & SESSÕES (CARDS, LISTA, KANBAN, CALEND.) -->
+            <!-- ============================================================= -->
+            <div id="screen-schedule" class="app-screen p-4 sm:p-6 space-y-5">
+              
+              <div class="bg-white p-4 rounded-2xl border border-slate-200 shadow-subtle flex flex-wrap items-center justify-between gap-4">
+                <div class="flex items-center gap-2">
+                  <div class="flex items-center bg-slate-100 p-1 rounded-xl text-xs font-semibold text-slate-600">
+                    <button class="px-3 py-1.5 bg-white text-teal-800 rounded-lg shadow-xs">Cards</button>
+                    <button class="px-3 py-1.5 hover:text-slate-900">Lista</button>
+                    <button class="px-3 py-1.5 hover:text-slate-900">Kanban</button>
+                    <button class="px-3 py-1.5 hover:text-slate-900">Calendário</button>
+                  </div>
+
+                  <button class="px-3 py-1.5 rounded-xl bg-purple-50 text-purple-700 border border-purple-200 text-xs font-semibold flex items-center gap-1.5">
+                    <svg class="w-3.5 h-3.5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/></svg>
+                    <span>Lista de Espera (0)</span>
+                  </button>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold">&larr; Anterior</button>
+                  <span class="text-xs font-bold px-3 py-1.5 bg-white border border-slate-200 rounded-xl">Hoje (15/10/2026)</span>
+                  <button class="px-3 py-1.5 rounded-xl bg-slate-100 text-slate-700 text-xs font-semibold">Próximo &rarr;</button>
+                </div>
+              </div>
+
+              <!-- Exemplos de Atendimentos Reais na Agenda -->
+              <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                
+                <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-subtle space-y-3">
+                  <div class="flex justify-between items-start">
+                    <span class="px-2.5 py-1 rounded-lg bg-teal-50 text-teal-700 font-bold font-mono text-xs">09:00 - 09:50</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Realizada</span>
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-slate-900 text-sm privacy-field">Lucas R. Mendes</h4>
+                    <p class="text-xs text-slate-500">Presencial • Consultório</p>
+                  </div>
+                  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <span class="font-mono font-bold text-slate-700 privacy-field">R$ 200 (Pago PIX)</span>
+                    <span class="text-teal-600 font-medium">Prontuário preenchido</span>
+                  </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-teal-50/40 border border-teal-200 shadow-subtle space-y-3">
+                  <div class="flex justify-between items-start">
+                    <span class="px-2.5 py-1 rounded-lg bg-teal-600 text-white font-bold font-mono text-xs">14:00 - 14:50</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-blue-100 text-blue-800">Confirmada</span>
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-slate-900 text-sm privacy-field">Mariana Duarte</h4>
+                    <p class="text-xs text-slate-500">Online • Google Meet Vinculado</p>
+                  </div>
+                  <div class="pt-2 border-t border-teal-100 flex items-center justify-between text-xs">
+                    <button onclick="alert('Link do Google Meet copiado!')" class="px-3 py-1 bg-white border border-slate-200 rounded-lg text-teal-700 font-bold">
+                      Copiar Link Meet
+                    </button>
+                    <button onclick="switchRealScreen('patients')" class="px-3 py-1 bg-[#0f9f80] text-white rounded-lg font-bold">
+                      Abrir Prontuário
+                    </button>
+                  </div>
+                </div>
+
+                <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-subtle space-y-3">
+                  <div class="flex justify-between items-start">
+                    <span class="px-2.5 py-1 rounded-lg bg-slate-100 text-slate-700 font-bold font-mono text-xs">16:00 - 16:50</span>
+                    <span class="text-[10px] font-bold px-2 py-0.5 rounded-full bg-slate-100 text-slate-700">Agendada</span>
+                  </div>
+                  <div>
+                    <h4 class="font-bold text-slate-900 text-sm privacy-field">Camila S. Silveira</h4>
+                    <p class="text-xs text-slate-500">Presencial • Consultório</p>
+                  </div>
+                  <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
+                    <button onclick="alert('Lembrete aberto para envio no WhatsApp!')" class="w-full py-1.5 bg-slate-900 text-white rounded-lg font-bold">
+                      Disparar Confirmação WhatsApp
+                    </button>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- TELA REAL 3: PACIENTES & PRONTUÁRIOS (PATIENT DETAIL VIEW)    -->
+            <!-- ============================================================= -->
+            <div id="screen-patients" class="app-screen p-4 sm:p-6 space-y-5">
+              
+              <!-- Header do Paciente Selecionado -->
+              <div class="p-5 rounded-2xl bg-white border border-slate-200 shadow-subtle flex flex-wrap items-center justify-between gap-4">
+                <div>
+                  <div class="flex items-center gap-3">
+                    <h3 class="text-xl font-bold text-slate-900 privacy-field">Mariana Duarte de Oliveira</h3>
+                    <span class="px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 text-xs font-bold">Ativa</span>
+                    <span class="text-xs font-mono text-slate-500">CLI-2026-088</span>
+                  </div>
+                  <p class="text-xs text-slate-500 mt-1">Teleconsulta • R$ 200,00 • Contato Emergência: Marcos Duarte (11 98877-6655)</p>
+                </div>
+
+                <div class="flex items-center gap-2">
+                  <button onclick="alert('Modal de evolução aberto para preenchimento imediato.')" class="px-4 py-2 bg-[#0f9f80] hover:bg-teal-600 text-white text-xs font-bold rounded-xl shadow-xs transition">
+                    + Nova Evolução de Sessão
+                  </button>
+                </div>
+              </div>
+
+              <!-- Abas da Ficha Clínica Real -->
+              <div class="bg-white rounded-2xl border border-slate-200 p-5 shadow-subtle space-y-4">
+                <div class="flex border-b border-slate-200 gap-6 text-xs font-bold text-slate-500 uppercase tracking-wider">
+                  <button class="pb-3 border-b-2 border-teal-600 text-teal-800">1. Evoluções Clínicas (14)</button>
+                  <button class="pb-3 hover:text-slate-900">2. Anamnese Estruturada</button>
+                  <button class="pb-3 hover:text-slate-900">3. Escalas PHQ-9 & GAD-7</button>
+                  <button class="pb-3 hover:text-slate-900">4. Dados & Documentos</button>
+                </div>
+
+                <!-- Detalhe da Evolução com Separação Ética -->
+                <div class="grid grid-cols-1 lg:grid-cols-3 gap-5 text-xs">
+                  
+                  <div class="lg:col-span-2 space-y-3">
+                    <div class="p-4 rounded-xl bg-slate-50 border border-slate-200 space-y-2.5 leading-relaxed">
+                      <div class="flex justify-between font-bold text-slate-900 pb-2 border-b border-slate-200">
+                        <span>Sessão #14 • 15/10/2026 (Teleconsulta)</span>
+                        <span class="font-mono text-[11px] text-teal-700">Versão 2 (Auditada)</span>
+                      </div>
+                      <p><strong>Demandas:</strong> Transição de carreira e sobrecarga corporativa com queixa de insônia.</p>
+                      <p><strong>Intervenções:</strong> Reestruturação cognitiva de pensamentos automáticos de autocobrança; treino assertivo.</p>
+                      <p><strong>Registro Formal (CFP 001/2009):</strong> Paciente orientada globalmente, afeto congruente. Excelente adesão ao diário de pensamentos. Estabelecido plano de ação com a liderança.</p>
+                      <p><strong>Combinados:</strong> Higiene do sono e registro de situações de estresse na rotina de trabalho.</p>
+                    </div>
+                  </div>
+
+                  <!-- Anotações Privadas do Terapeuta -->
+                  <div class="p-4 rounded-xl bg-amber-50/70 border border-amber-200 space-y-2">
+                    <div class="flex justify-between items-center text-amber-900 font-bold pb-2 border-b border-amber-200">
+                      <span>Anotações Privativas da Terapeuta</span>
+                      <span class="text-[10px] px-1.5 py-0.5 rounded bg-amber-200 text-amber-900">Inviolável</span>
+                    </div>
+                    <p class="text-[11px] text-amber-800 leading-relaxed">
+                      Espaço protegido para contratransferência e hipóteses de supervisão. <strong>Não compõe o prontuário oficial</strong> caso o paciente solicite cópia documental.
+                    </p>
+                    <div class="p-2.5 rounded-lg bg-white border border-amber-200 text-slate-800 text-[11px]">
+                      [SUPERVISÃO]: Hipótese de hipervigilância ligada à dinâmica familiar relatada na anamnese. Levar para supervisão de quarta.
+                    </div>
+                  </div>
+
+                </div>
+              </div>
+
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- TELA REAL 4: FINANCEIRO & EMISSÃO DE RECIBOS IRPF             -->
+            <!-- ============================================================= -->
+            <div id="screen-financial" class="app-screen p-4 sm:p-6 space-y-5">
+              
+              <div class="grid grid-cols-1 lg:grid-cols-2 gap-5 items-start">
+                
+                <div class="bg-white p-5 rounded-2xl border border-slate-200 shadow-subtle space-y-4">
+                  <div class="flex justify-between items-center pb-3 border-b border-slate-100">
+                    <h3 class="font-bold text-sm text-slate-900">Gestão de Pagamentos & Honorários</h3>
+                    <span class="text-xs font-mono font-bold text-teal-700 bg-teal-50 px-2 py-0.5 rounded">R$ 13.600 Recebido</span>
+                  </div>
+
+                  <div class="space-y-2 text-xs">
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <div>
+                        <span class="font-bold text-slate-900 block privacy-field">Mariana Duarte</span>
+                        <span class="text-slate-500">Sessão #14 • 15/10/2026</span>
+                      </div>
+                      <div class="text-right">
+                        <span class="font-mono font-bold text-slate-900 block privacy-field">R$ 200,00</span>
+                        <span class="text-emerald-600 font-medium text-[10px]">Pago via PIX</span>
+                      </div>
+                    </div>
+
+                    <div class="p-3 rounded-xl bg-slate-50 border border-slate-200 flex justify-between items-center">
+                      <div>
+                        <span class="font-bold text-slate-900 block privacy-field">Lucas R. Mendes</span>
+                        <span class="text-slate-500">Sessão #12 • 15/10/2026</span>
+                      </div>
+                      <div class="text-right">
+                        <span class="font-mono font-bold text-slate-900 block privacy-field">R$ 200,00</span>
+                        <span class="text-emerald-600 font-medium text-[10px]">Pago via Transferência</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  <p class="text-[11px] text-slate-500">
+                    Todos os lançamentos geram histórico para exportação ao Carnê-Leão e declaração do IRPF do paciente.
+                  </p>
+                </div>
+
+                <!-- Recibo Fiscal Timbrado Gerado pelo Sistema -->
+                <div class="receipt-paper p-6 rounded-2xl text-xs space-y-3">
+                  <div class="flex justify-between items-start pb-3 border-b border-slate-200">
+                    <div>
+                      <h4 class="font-bold text-sm text-slate-900">Consultório de Psicologia Clínica</h4>
+                      <p class="text-slate-600 text-[11px]">Psicóloga Ana Lima • CRP 04/60205</p>
+                    </div>
+                    <span class="text-[10px] font-mono font-bold bg-slate-100 text-slate-800 px-2 py-0.5 rounded">RECIBO FISCAL</span>
+                  </div>
+
+                  <p class="leading-relaxed text-slate-700">
+                    Recebi de <strong class="privacy-field text-slate-900">Mariana Duarte</strong> a quantia de <strong>R$ 200,00 (duzentos reais)</strong> referente a 01 sessão individual de psicoterapia clínica realizada em 15/10/2026.
+                  </p>
+
+                  <div class="pt-4 border-t border-slate-200 flex justify-between items-end text-[10px] text-slate-500">
+                    <span>Hash SHA-256: 8f4c...3e19</span>
+                    <span class="font-bold text-slate-900">Assinatura CRP 04/60205</span>
+                  </div>
+                </div>
+
+              </div>
+
+            </div>
+
+            <!-- ============================================================= -->
+            <!-- TELA REAL 5: TRIAGEM ONLINE (INTAKE DIGITAL LGPD)             -->
+            <!-- ============================================================= -->
+            <div id="screen-intake" class="app-screen p-4 sm:p-6 space-y-5">
+              
+              <div class="max-w-xl mx-auto bg-white p-6 rounded-2xl border border-slate-200 shadow-subtle text-xs space-y-4">
+                <div class="text-center pb-4 border-b border-slate-200">
+                  <span class="text-[10px] font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-2 py-0.5 rounded">Pré-Cadastro do Paciente</span>
+                  <h3 class="font-bold text-base text-slate-900 mt-1">Formulário de Acolhimento Inicial</h3>
+                  <p class="text-slate-500 text-[11px]">Link enviado para preenchimento seguro antes da primeira sessão</p>
+                </div>
+
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Nome Completo:</label>
+                  <input type="text" value="Mariana Duarte de Oliveira" class="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-xs">
+                </div>
+
+                <div>
+                  <label class="block font-bold text-slate-700 mb-1">Queixa Principal / Motivo da Busca:</label>
+                  <textarea rows="2" class="w-full p-2.5 rounded-lg border border-slate-200 bg-slate-50 text-slate-900 text-xs leading-relaxed">Acompanhamento para ansiedade e sobrecarga profissional.</textarea>
+                </div>
+
+                <div class="p-3 rounded-xl bg-teal-50/60 border border-teal-200 text-[11px] text-teal-900 space-y-1">
+                  <div class="flex items-start gap-2">
+                    <input type="checkbox" checked class="mt-0.5 accent-teal-600">
+                    <label>Concordo com o armazenamento ético e confidencial dos meus dados sensíveis para fins de acompanhamento psicológico e prontuário clínico (LGPD Art. 11).</label>
+                  </div>
+                </div>
+
+                <button onclick="alert('Pré-cadastro submetido! O psicólogo recebe notificação na hora para cadastrar o paciente com 1 clique.')" class="w-full py-2.5 bg-[#0f9f80] text-white font-bold rounded-xl shadow-xs transition">
+                  Enviar Dados com Segurança
+                </button>
+              </div>
+
+            </div>
+
+          </div>
+
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- SEÇÃO: JORNADA CLÍNICA DETALHADA                                          -->
+  <!-- ========================================================================= -->
+  <section id="jornada" class="py-20 bg-white border-b border-slate-200">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="text-center max-w-3xl mx-auto mb-16">
+        <span class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+          Fluxo Completo do Consultório
+        </span>
+        <h2 class="text-3xl sm:text-4xl font-serif text-slate-900 mt-4 tracking-tight">
+          A Jornada Completa do Psicólogo Clínico
+        </h2>
+        <p class="text-sm text-slate-600 mt-2">
+          Veja como cada funcionalidade resolve uma etapa real do ciclo terapêutico.
+        </p>
+      </div>
+
+      <div class="grid grid-cols-1 md:grid-cols-5 gap-4">
+        
+        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+          <div>
+            <span class="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-bold flex items-center justify-center mb-3">01</span>
+            <h3 class="font-bold text-slate-900 text-sm">Triagem & LGPD</h3>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              O paciente preenche dados, queixa inicial e consente com os termos da LGPD no próprio celular antes da consulta.
+            </p>
+          </div>
+          <span class="text-[11px] font-semibold text-teal-700 mt-4 block">Zero digitação de fichas</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+          <div>
+            <span class="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-bold flex items-center justify-center mb-3">02</span>
+            <h3 class="font-bold text-slate-900 text-sm">Agenda & Meet</h3>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              Atendimentos presenciais e teleconsultas com link do Google Meet gerado na hora e confirmação via WhatsApp.
+            </p>
+          </div>
+          <span class="text-[11px] font-semibold text-teal-700 mt-4 block">Menos faltas e no-shows</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+          <div>
+            <span class="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-bold flex items-center justify-center mb-3">03</span>
+            <h3 class="font-bold text-slate-900 text-sm">Evolução em 2 Minutos</h3>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              Registro guiado pós-sessão conforme a Resolução CFP 001/2009 com histórico imutável e notas privadas separadas.
+            </p>
+          </div>
+          <span class="text-[11px] font-semibold text-teal-700 mt-4 block">Prontuário em dia sempre</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+          <div>
+            <span class="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-bold flex items-center justify-center mb-3">04</span>
+            <h3 class="font-bold text-slate-900 text-sm">Escalas PHQ-9 / GAD-7</h3>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              Aplicação de testes padronizados de depressão e ansiedade com alerta para o Item 9 (ideação suicida).
+            </p>
+          </div>
+          <span class="text-[11px] font-semibold text-teal-700 mt-4 block">Evidência clínica visual</span>
+        </div>
+
+        <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200 flex flex-col justify-between">
+          <div>
+            <span class="w-7 h-7 rounded-full bg-slate-900 text-white font-mono text-xs font-bold flex items-center justify-center mb-3">05</span>
+            <h3 class="font-bold text-slate-900 text-sm">Recibos & Carnê-Leão</h3>
+            <p class="text-xs text-slate-600 mt-2 leading-relaxed">
+              Controle de pagamentos PIX e emissão instantânea de recibo oficial com dados de CRP para dedução no IRPF.
+            </p>
+          </div>
+          <span class="text-[11px] font-semibold text-teal-700 mt-4 block">1 clique e recibo emitido</span>
+        </div>
+
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- SIMULADOR DE EFICIÊNCIA DO CONSULTÓRIO                                    -->
+  <!-- ========================================================================= -->
+  <section id="calculadora" class="py-20 bg-slate-50">
+    <div class="max-w-4xl mx-auto px-4 sm:px-6 lg:px-8">
+      
+      <div class="bg-white p-8 sm:p-10 rounded-3xl border border-slate-200 shadow-card">
+        <div class="max-w-2xl mb-8">
+          <span class="text-xs font-bold uppercase tracking-wider text-teal-800 bg-teal-50 px-3 py-1 rounded-full border border-teal-200">
+            Simulador de Eficiência
+          </span>
+          <h3 class="text-2xl sm:text-3xl font-serif text-slate-900 mt-3">
+            Calcule o tempo recuperado na sua rotina clínica
+          </h3>
+          <p class="text-xs text-slate-500 mt-1">Ajuste os controles abaixo para ver o impacto direto de ter prontuários e cobranças automáticas.</p>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-8 items-center">
+          
+          <div class="space-y-6">
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-800 mb-2">
+                <span>Pacientes atendidos por semana:</span>
+                <span id="label-pacientes" class="text-teal-700 font-mono text-sm font-bold">20 pacientes</span>
+              </div>
+              <input type="range" id="slider-pacientes" min="5" max="45" value="20" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0f9f80]" oninput="updateCalculator()">
+            </div>
+
+            <div>
+              <div class="flex justify-between text-xs font-bold text-slate-800 mb-2">
+                <span>Valor médio da sessão:</span>
+                <span id="label-valor" class="text-teal-700 font-mono text-sm font-bold">R$ 200</span>
+              </div>
+              <input type="range" id="slider-valor" min="100" max="450" step="10" value="200" class="w-full h-2 bg-slate-200 rounded-lg appearance-none cursor-pointer accent-[#0f9f80]" oninput="updateCalculator()">
+            </div>
+
+            <p class="text-xs text-slate-500 leading-relaxed">
+              Base: Economia média de 15 minutos por sessão em anotações burocráticas, busca de links e envio de recibos, além de redução de faltas via confirmação ativa.
+            </p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-3 text-center">
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200">
+              <span class="text-[11px] text-slate-500 uppercase font-bold">Horas Poupadas</span>
+              <div id="calc-horas" class="text-3xl font-serif font-bold text-slate-900 my-1">20h</div>
+              <span class="text-[10px] text-slate-500">livres por mês</span>
+            </div>
+
+            <div class="p-5 rounded-2xl bg-slate-50 border border-slate-200">
+              <span class="text-[11px] text-slate-500 uppercase font-bold">Faltas Evitadas</span>
+              <div id="calc-faltas" class="text-3xl font-serif font-bold text-teal-700 my-1">4 sessões</div>
+              <span class="text-[10px] text-slate-500">recuperadas no mês</span>
+            </div>
+
+            <div class="col-span-2 p-5 rounded-2xl bg-[#1C2B22] text-white">
+              <span class="text-xs text-slate-300 uppercase font-bold">Faturamento Preservado</span>
+              <div id="calc-financeiro" class="text-3xl font-serif font-bold text-white my-1">+ R$ 800 / mês</div>
+              <span class="text-xs text-slate-300">em horários que não ficam vagos</span>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+  </section>
+
+  <!-- ========================================================================= -->
+  <!-- RODAPÉ FINAL                                                              -->
+  <!-- ========================================================================= -->
+  <footer class="bg-white border-t border-slate-200 py-12 text-xs text-slate-500">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 flex flex-col md:flex-row items-center justify-between gap-6">
+      
+      <div class="flex items-center space-x-3">
+        <div class="w-9 h-9 rounded-xl bg-[#1C2B22] flex items-center justify-center text-white shadow-subtle">
+          <svg class="w-5 h-5" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8">
+            <circle cx="12" cy="12" r="2" />
+            <path d="M12 2v4M12 18v4M4.93 4.93l2.83 2.83M16.24 16.24l2.83 2.83M2 12h4M18 12h4" />
+          </svg>
+        </div>
+        <div>
+          <span class="font-bold text-slate-900 text-sm block">Sistema de Gestão Clínica Psicológica</span>
+          <span class="text-[11px]">Desenvolvido para conformidade estrita com CFP 001/2009 e LGPD</span>
+        </div>
+      </div>
+
+      <p class="text-slate-400">
+        Disponível em ana-lima-psi-app.web.app • PWA Instalável
+      </p>
+
+    </div>
+  </footer>
+
+  <!-- ========================================================================= -->
+  <!-- SCRIPTS INTERATIVOS: CONTROLE DAS TELAS REAIS E PRIVACIDADE              -->
+  <!-- ========================================================================= -->
+  <script>
+    // 1. Alternância entre as Telas Reais do Sistema
+    function switchRealScreen(screenId) {
+      document.querySelectorAll('.app-screen').forEach(el => {
+        el.classList.remove('active');
+      });
+
+      document.querySelectorAll('.nav-btn').forEach(btn => {
+        btn.classList.remove('bg-[#0f9f80]', 'text-white', 'font-semibold', 'shadow-sm');
+        btn.classList.add('text-slate-300');
+      });
+
+      const targetScreen = document.getElementById(`screen-${screenId}`);
+      if (targetScreen) {
+        targetScreen.classList.add('active');
+      }
+
+      const activeBtn = document.getElementById(`nav-${screenId}`);
+      if (activeBtn) {
+        activeBtn.classList.remove('text-slate-300');
+        activeBtn.classList.add('bg-[#0f9f80]', 'text-white', 'font-semibold', 'shadow-sm');
+      }
+    }
+
+    // 2. Modo Privacidade Real (Borramento ao Vivo de Nomes e Valores)
+    let isPrivacyActive = false;
+    function togglePrivacyMode() {
+      isPrivacyActive = !isPrivacyActive;
+      const fields = document.querySelectorAll('.privacy-field');
+      const eyeOpen = document.getElementById('icon-eye-open');
+      const eyeClosed = document.getElementById('icon-eye-closed');
+      const btnText = document.getElementById('text-privacy-toggle');
+
+      fields.forEach(f => {
+        if (isPrivacyActive) {
+          f.classList.add('privacy-blurred');
+        } else {
+          f.classList.remove('privacy-blurred');
+        }
+      });
+
+      if (isPrivacyActive) {
+        eyeOpen.classList.add('hidden');
+        eyeClosed.classList.remove('hidden');
+        btnText.innerText = "Privativo";
+        btnText.classList.add('text-rose-600');
+      } else {
+        eyeOpen.classList.remove('hidden');
+        eyeClosed.classList.add('hidden');
+        btnText.innerText = "Privacidade";
+        btnText.classList.remove('text-rose-600');
+      }
+    }
+
+    // 3. Calculadora Interativa
+    function updateCalculator() {
+      const pacientes = parseInt(document.getElementById('slider-pacientes').value);
+      const valor = parseInt(document.getElementById('slider-valor').value);
+
+      document.getElementById('label-pacientes').innerText = `${pacientes} pacientes`;
+      document.getElementById('label-valor').innerText = `R$ ${valor}`;
+
+      const horasPoupadas = Math.round((pacientes * 15 * 4) / 60);
+      const sessoesMensais = pacientes * 4;
+      const faltasEvitadas = Math.max(1, Math.round(sessoesMensais * 0.05));
+      const financeiroSalvo = faltasEvitadas * valor;
+
+      document.getElementById('calc-horas').innerText = `${horasPoupadas}h`;
+      document.getElementById('calc-faltas').innerText = `${faltasEvitadas} sessões`;
+      document.getElementById('calc-financeiro').innerText = `+ R$ ${financeiroSalvo.toLocaleString('pt-BR')} / mês`;
+    }
+
+    document.addEventListener('DOMContentLoaded', () => {
+      updateCalculator();
+    });
+  </script>
+
+</body>
+</html>

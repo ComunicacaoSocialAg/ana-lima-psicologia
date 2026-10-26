@@ -1,55 +1,64 @@
-import React, { useState } from 'react';
-import { 
-  Users, 
-  Search, 
-  Plus, 
-  Filter, 
-  Phone, 
-  Calendar, 
-  ChevronRight, 
-  DollarSign, 
-  MessageSquare, 
-  Edit, 
-  Trash2, 
-  MapPin, 
+import React, { useState } from "react";
+import {
+  Users,
+  Search,
+  Plus,
+  Filter,
+  Phone,
+  Calendar,
+  ChevronRight,
+  DollarSign,
+  MessageSquare,
+  Edit,
+  Trash2,
+  MapPin,
   Video,
   UserCheck,
-  Sparkles
-} from 'lucide-react';
-import { useApp } from '../../context/AppContext';
-import { Patient, PatientStatus, Modality } from '../../types';
-import { PatientModal } from './PatientModal';
-import { WhatsAppModal } from '../common/WhatsAppModal';
-import { SendIntakeWhatsAppModal } from './SendIntakeWhatsAppModal';
+  Sparkles,
+} from "lucide-react";
+import { useApp } from "../../context/AppContext";
+import { Patient, PatientStatus, Modality } from "../../types";
+import { PatientModal } from "./PatientModal";
+import { WhatsAppModal } from "../common/WhatsAppModal";
+import { SendIntakeWhatsAppModal } from "./SendIntakeWhatsAppModal";
+import { formatDateBR } from "../../utils/dateUtils";
 
 interface PatientsViewProps {
   onNewPatientClick: () => void;
 }
 
-export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick }) => {
+export const PatientsView: React.FC<PatientsViewProps> = ({
+  onNewPatientClick,
+}) => {
   const { patients, navigateTo, deletePatient, isPrivacyMode } = useApp();
 
-  const [searchTerm, setSearchTerm] = useState('');
-  const [statusFilter, setStatusFilter] = useState<'all' | PatientStatus>('all');
-  const [modalityFilter, setModalityFilter] = useState<'all' | Modality>('all');
-  
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState<"all" | PatientStatus>(
+    "all",
+  );
+  const [modalityFilter, setModalityFilter] = useState<"all" | Modality>("all");
+
   const [editingPatient, setEditingPatient] = useState<Patient | null>(null);
   const [whatsAppPatient, setWhatsAppPatient] = useState<Patient | null>(null);
   const [isSendIntakeModalOpen, setIsSendIntakeModalOpen] = useState(false);
 
-  const filteredPatients = patients.filter(p => {
-    const matchesSearch = 
+  const filteredPatients = patients.filter((p) => {
+    const matchesSearch =
       p.name.toLowerCase().includes(searchTerm.toLowerCase()) ||
       (p.cpf && p.cpf.includes(searchTerm)) ||
       p.phone.includes(searchTerm);
 
-    const matchesStatus = statusFilter === 'all' || p.status === statusFilter;
-    const matchesModality = modalityFilter === 'all' || p.preferredModality === modalityFilter;
+    const matchesStatus = statusFilter === "all" || p.status === statusFilter;
+    const matchesModality =
+      modalityFilter === "all" || p.preferredModality === modalityFilter;
 
     return matchesSearch && matchesStatus && matchesModality;
   });
 
-  const getStatusBadge = (status: PatientStatus, isPreRegistration?: boolean) => {
+  const getStatusBadge = (
+    status: PatientStatus,
+    isPreRegistration?: boolean,
+  ) => {
     if (isPreRegistration) {
       return (
         <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800 border border-emerald-300 shadow-2xs flex items-center gap-1 shrink-0">
@@ -59,16 +68,36 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick })
       );
     }
     switch (status) {
-      case 'active':
-        return <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">Ativo</span>;
-      case 'paused':
-        return <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">Em Pausa</span>;
-      case 'discharged':
-        return <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">Alta</span>;
-      case 'waiting_list':
-        return <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">Fila de Espera</span>;
-      case 'abandoned':
-        return <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800">Abandono</span>;
+      case "active":
+        return (
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+            Ativo
+          </span>
+        );
+      case "paused":
+        return (
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-amber-100 text-amber-800">
+            Em Pausa
+          </span>
+        );
+      case "discharged":
+        return (
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-blue-100 text-blue-800">
+            Alta
+          </span>
+        );
+      case "waiting_list":
+        return (
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-purple-100 text-purple-800">
+            Fila de Espera
+          </span>
+        );
+      case "abandoned":
+        return (
+          <span className="text-xs font-bold px-2.5 py-0.5 rounded-full bg-rose-100 text-rose-800">
+            Abandono
+          </span>
+        );
     }
   };
 
@@ -133,55 +162,59 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick })
       {/* Abas Rápidas de Status & Destaque da Lista de Espera */}
       <div className="flex items-center gap-2 overflow-x-auto pb-1">
         <button
-          onClick={() => setStatusFilter('all')}
+          onClick={() => setStatusFilter("all")}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-            statusFilter === 'all'
-              ? 'bg-slate-900 text-white shadow-xs'
-              : 'bg-white text-slate-600 hover:bg-slate-100 border border-slate-200'
+            statusFilter === "all"
+              ? "bg-slate-900 text-white shadow-xs"
+              : "bg-white text-slate-600 hover:bg-slate-100 border border-slate-200"
           }`}
         >
           Todos ({patients.length})
         </button>
         <button
-          onClick={() => setStatusFilter('active')}
+          onClick={() => setStatusFilter("active")}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-            statusFilter === 'active'
-              ? 'bg-emerald-600 text-white shadow-xs'
-              : 'bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200'
+            statusFilter === "active"
+              ? "bg-emerald-600 text-white shadow-xs"
+              : "bg-white text-emerald-700 hover:bg-emerald-50 border border-emerald-200"
           }`}
         >
-          🟢 Em Acompanhamento ({patients.filter(p => p.status === 'active').length})
+          🟢 Em Acompanhamento (
+          {patients.filter((p) => p.status === "active").length})
         </button>
         <button
-          onClick={() => setStatusFilter('waiting_list')}
+          onClick={() => setStatusFilter("waiting_list")}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 flex items-center gap-1.5 ${
-            statusFilter === 'waiting_list'
-              ? 'bg-purple-600 text-white shadow-xs'
-              : 'bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200'
+            statusFilter === "waiting_list"
+              ? "bg-purple-600 text-white shadow-xs"
+              : "bg-purple-50 text-purple-700 hover:bg-purple-100 border border-purple-200"
           }`}
         >
           <UserCheck className="w-3.5 h-3.5" />
-          <span>Fila de Espera ({patients.filter(p => p.status === 'waiting_list').length})</span>
+          <span>
+            Fila de Espera (
+            {patients.filter((p) => p.status === "waiting_list").length})
+          </span>
         </button>
         <button
-          onClick={() => setStatusFilter('paused')}
+          onClick={() => setStatusFilter("paused")}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-            statusFilter === 'paused'
-              ? 'bg-amber-600 text-white shadow-xs'
-              : 'bg-white text-amber-700 hover:bg-amber-50 border border-amber-200'
+            statusFilter === "paused"
+              ? "bg-amber-600 text-white shadow-xs"
+              : "bg-white text-amber-700 hover:bg-amber-50 border border-amber-200"
           }`}
         >
-          🟡 Em Pausa ({patients.filter(p => p.status === 'paused').length})
+          🟡 Em Pausa ({patients.filter((p) => p.status === "paused").length})
         </button>
         <button
-          onClick={() => setStatusFilter('discharged')}
+          onClick={() => setStatusFilter("discharged")}
           className={`px-3 py-1.5 rounded-xl text-xs font-semibold transition-all shrink-0 ${
-            statusFilter === 'discharged'
-              ? 'bg-blue-600 text-white shadow-xs'
-              : 'bg-white text-blue-700 hover:bg-blue-50 border border-blue-200'
+            statusFilter === "discharged"
+              ? "bg-blue-600 text-white shadow-xs"
+              : "bg-white text-blue-700 hover:bg-blue-50 border border-blue-200"
           }`}
         >
-          🔵 Alta ({patients.filter(p => p.status === 'discharged').length})
+          🔵 Alta ({patients.filter((p) => p.status === "discharged").length})
         </button>
       </div>
 
@@ -190,27 +223,30 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick })
         {filteredPatients.length === 0 ? (
           <div className="col-span-full bg-white rounded-2xl p-12 text-center border border-slate-200 text-slate-500 space-y-3">
             <Users className="w-10 h-10 text-slate-300 mx-auto" />
-            <p className="text-sm font-medium text-slate-700">Nenhum paciente encontrado com os filtros selecionados.</p>
+            <p className="text-sm font-medium text-slate-700">
+              Nenhum paciente encontrado com os filtros selecionados.
+            </p>
           </div>
         ) : (
           filteredPatients.map((patient) => {
             return (
               <div
                 key={patient.id}
-                className={`bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 hover:border-brand-300 transition-all flex flex-col justify-between gap-4 ${isPrivacyMode ? 'privacy-blur' : ''}`}
+                className={`bg-white rounded-2xl border border-slate-200 shadow-2xs p-5 hover:border-brand-300 transition-all flex flex-col justify-between gap-4 ${isPrivacyMode ? "privacy-blur" : ""}`}
               >
                 <div>
                   {/* Top line: Name and Status */}
                   <div className="flex items-start justify-between gap-2">
                     <div>
                       <h3
-                        onClick={() => navigateTo('patient-detail', patient.id)}
+                        onClick={() => navigateTo("patient-detail", patient.id)}
                         className="font-bold text-base text-slate-900 hover:text-brand-600 cursor-pointer transition-colors leading-tight"
                       >
                         {patient.name}
                       </h3>
                       <p className="text-xs text-slate-500 mt-0.5">
-                        {patient.profession || 'Profissão não informada'} • Início: {patient.startDate}
+                        {patient.profession || "Profissão não informada"} •
+                        Início: {formatDateBR(patient.startDate)}
                       </p>
                     </div>
                     {getStatusBadge(patient.status, patient.isPreRegistration)}
@@ -235,10 +271,12 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick })
 
                     <div className="flex items-center justify-between">
                       <span className="flex items-center gap-1.5 text-slate-500">
-                        {patient.preferredModality === 'online' ? (
+                        {patient.preferredModality === "online" ? (
                           <>
                             <Video className="w-3.5 h-3.5 text-blue-500" />
-                            <span className="text-blue-700 font-medium">Online</span>
+                            <span className="text-blue-700 font-medium">
+                              Online
+                            </span>
                           </>
                         ) : (
                           <>
@@ -262,7 +300,11 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick })
                     {/* Destaque do Responsável / Contato de Emergência */}
                     {patient.emergencyContact?.name && (
                       <div className="flex items-center gap-1.5 text-purple-700 bg-purple-50/70 border border-purple-100 px-2 py-1 rounded text-[11px] font-medium">
-                        <span>👥 Resp: {patient.emergencyContact.name} ({patient.emergencyContact.relationship || 'Contato'}) • {patient.emergencyContact.phone}</span>
+                        <span>
+                          👥 Resp: {patient.emergencyContact.name} (
+                          {patient.emergencyContact.relationship || "Contato"})
+                          • {patient.emergencyContact.phone}
+                        </span>
                       </div>
                     )}
                   </div>
@@ -280,11 +322,15 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick })
                     </button>
                     <button
                       onClick={() => {
-                        if (confirm(`Deseja realmente excluir o cadastro de ${patient.name}?`)) {
+                        if (
+                          confirm(
+                            `Deseja arquivar o cadastro de ${patient.name}?`,
+                          )
+                        ) {
                           deletePatient(patient.id);
                         }
                       }}
-                      title="Excluir paciente"
+                      title="Arquivar paciente"
                       className="p-1.5 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-colors"
                     >
                       <Trash2 className="w-4 h-4" />
@@ -292,7 +338,7 @@ export const PatientsView: React.FC<PatientsViewProps> = ({ onNewPatientClick })
                   </div>
 
                   <button
-                    onClick={() => navigateTo('patient-detail', patient.id)}
+                    onClick={() => navigateTo("patient-detail", patient.id)}
                     className="flex items-center gap-1 px-3 py-1.5 bg-brand-50 hover:bg-brand-100 text-brand-800 font-semibold text-xs rounded-xl transition-colors"
                   >
                     <span>Ficha & Prontuário</span>

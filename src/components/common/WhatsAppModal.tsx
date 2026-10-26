@@ -3,6 +3,7 @@ import { X, Send, Copy, Check, MessageSquare, ExternalLink, Calendar, Sparkles }
 import { useApp } from '../../context/AppContext';
 import { formatWhatsAppMessage, generateWhatsAppUrl, DEFAULT_TEMPLATES } from '../../services/whatsappService';
 import { generateUniversalCalendarUrl } from '../../services/calendarService';
+import { formatDateBR } from '../../utils/dateUtils';
 
 interface WhatsAppModalProps {
   isOpen: boolean;
@@ -72,7 +73,7 @@ export const WhatsAppModal: React.FC<WhatsAppModalProps> = ({
     }
     const formatted = formatWhatsAppMessage(baseTemplate, {
       nome: activeRecipientName,
-      data: sessionDate || 'hoje',
+      data: sessionDate ? formatDateBR(sessionDate) : 'hoje',
       hora: sessionTime || '14:00',
       link: meetLink || settings.defaultOnlineLink,
       valor: amount || 200,

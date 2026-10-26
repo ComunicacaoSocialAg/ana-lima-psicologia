@@ -20,4 +20,25 @@
       <video:duration>5</video:duration>
     </video:video>
   </url>
+  <url>
+    <loc>https://analimapsicologia.com.br/blog</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>daily</changefreq>
+    <priority>0.9</priority>
+    <image:image>
+      <image:loc>https://analimapsicologia.com.br/ana%20lima1.png</image:loc>
+      <image:title>Caderno Clínico &amp; Blog • Psicóloga Ana Lima (CRP 04/60205)</image:title>
+      <image:caption>Artigos e reflexões sobre Psicologia Histórico-Cultural e Desenvolvimento Humano</image:caption>
+    </image:image>
+  </url>
+  <url>
+    <loc>https://analimapsicologia.com.br/blog/ansiedade-compreensao-historico-cultural</loc>
+    <lastmod>2026-10-26</lastmod>
+    <changefreq>monthly</changefreq>
+    <priority>0.8</priority>
+    <image:image>
+      <image:loc>https://analimapsicologia.com.br/ana-lima-portrait.webp</image:loc>
+      <image:title>Ansiedade não é um defeito individual: a compreensão histórico-cultural</image:title>
+    </image:image>
+  </url>
 </urlset>

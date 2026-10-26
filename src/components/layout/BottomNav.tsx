@@ -1,5 +1,5 @@
 import React from 'react';
-import { LayoutDashboard, Calendar, Users, DollarSign, Settings } from 'lucide-react';
+import { LayoutDashboard, Calendar, Users, DollarSign, BookOpen, Settings } from 'lucide-react';
 import { useApp, AppView } from '../../context/AppContext';
 
 export const BottomNav: React.FC = () => {
@@ -10,6 +10,7 @@ export const BottomNav: React.FC = () => {
     { id: 'schedule', label: 'Agenda', icon: Calendar },
     { id: 'patients', label: 'Pacientes', icon: Users },
     { id: 'financial', label: 'Financeiro', icon: DollarSign },
+    { id: 'blog', label: 'Blog', icon: BookOpen },
     { id: 'settings', label: 'Ajustes', icon: Settings },
   ];
 

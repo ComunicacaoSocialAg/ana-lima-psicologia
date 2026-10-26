@@ -15,9 +15,11 @@ import {
   MessageSquare, 
   FileText,
   CheckCircle2,
-  CalendarCheck
+  CalendarCheck,
+  Baby
 } from 'lucide-react';
 import { Patient } from '../../types';
+import { formatDateBR } from '../../utils/dateUtils';
 
 interface IntakeReviewModalProps {
   isOpen: boolean;
@@ -26,6 +28,23 @@ interface IntakeReviewModalProps {
   onScheduleSession: (patientId: string) => void;
   onOpenWhatsApp: (patient: Patient) => void;
 }
+
+const calculateAge = (dateStr?: string): number | null => {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const monthDiff = today.getMonth() - m;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) {
+    age--;
+  }
+  return isNaN(age) || age < 0 ? null : age;
+};
 
 export const IntakeReviewModal: React.FC<IntakeReviewModalProps> = ({
   isOpen,
@@ -46,6 +65,22 @@ export const IntakeReviewModal: React.FC<IntakeReviewModalProps> = ({
         dateStyle: 'short',
         timeStyle: 'short'
       }).format(new Date(patient.createdAt || Date.now()));
+
+  const age = calculateAge(patient.birthDate);
+  const isMinorPatient = Boolean(
+    patient.isMinor || 
+    patient.guardianCpf || 
+    patient.guardianName || 
+    (typeof patient.legalGuardian === 'object' && patient.legalGuardian?.name) ||
+    (age !== null && age < 18)
+  );
+
+  const guardianData = {
+    name: patient.guardianName || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.name : (patient.legalGuardian || '')) || patient.emergencyContact?.name || '',
+    cpf: patient.guardianCpf || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.cpf : '') || '',
+    relationship: patient.guardianRelationship || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.relationship : '') || patient.emergencyContact?.relationship || 'Responsável Legal',
+    phone: patient.guardianPhone || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.phone : '') || patient.emergencyContact?.phone || patient.phone || '',
+  };
 
   const handleScheduleClick = () => {
     onClose();
@@ -150,7 +185,14 @@ export const IntakeReviewModal: React.FC<IntakeReviewModalProps> = ({
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">Data de Nascimento</span>
-                <span className="font-semibold text-slate-800">{patient.birthDate || 'Não informada'}</span>
+                <span className="font-semibold text-slate-800">
+                  {formatDateBR(patient.birthDate) || 'Não informada'}
+                  {age !== null && (
+                    <span className="ml-1.5 text-[10px] font-bold text-brand-700 bg-brand-50 px-1.5 py-0.5 rounded border border-brand-200">
+                      {age} {age === 1 ? 'ano' : 'anos'}
+                    </span>
+                  )}
+                </span>
               </div>
               <div>
                 <span className="text-slate-400 block text-[11px]">Identidade de Gênero</span>
@@ -211,28 +253,69 @@ export const IntakeReviewModal: React.FC<IntakeReviewModalProps> = ({
             </div>
           </div>
 
-          {/* 3. Contato de Emergência / Responsável Legal */}
-          <div className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 space-y-2">
-            <div className="flex items-center gap-2 text-xs font-bold text-purple-900 uppercase tracking-wider">
-              <HeartHandshake className="w-4 h-4 text-purple-700" />
-              <span>Contato de Emergência / Responsável Legal</span>
-            </div>
+          {/* 3. Responsável Legal ou Contato de Emergência */}
+          {isMinorPatient ? (
+            <div className="bg-amber-50/80 border border-amber-200/90 rounded-2xl p-4 space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-amber-900 uppercase tracking-wider">
+                  <ShieldCheck className="w-4 h-4 text-amber-700" />
+                  <span>Responsável Legal (CFP & Fiscal)</span>
+                </div>
+                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-200/80 text-amber-950">
+                  <Baby className="w-3 h-3 text-amber-700" />
+                  Paciente Menor de Idade {age !== null ? `(${age} anos)` : ''}
+                </span>
+              </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
-              <div>
-                <span className="text-purple-600 block text-[11px]">Nome do Contato</span>
-                <span className="font-bold text-purple-950">{patient.emergencyContact?.name || 'Não informado'}</span>
-              </div>
-              <div>
-                <span className="text-purple-600 block text-[11px]">Parentesco / Vínculo</span>
-                <span className="font-semibold text-purple-900">{patient.emergencyContact?.relationship || 'Não informado'}</span>
-              </div>
-              <div>
-                <span className="text-purple-600 block text-[11px]">Telefone de Emergência</span>
-                <span className="font-bold text-purple-950">{patient.emergencyContact?.phone || 'Não informado'}</span>
+              <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs pt-1">
+                <div>
+                  <span className="text-amber-800 block text-[11px] font-medium">Nome do Responsável</span>
+                  <span className="font-bold text-slate-900">{guardianData.name || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="text-amber-800 block text-[11px] font-medium">CPF do Responsável (IRPF)</span>
+                  <span className="font-mono font-bold text-slate-900 bg-white px-2 py-0.5 rounded border border-amber-300 inline-block mt-0.5">
+                    {guardianData.cpf || 'Não informado'}
+                  </span>
+                </div>
+                <div>
+                  <span className="text-amber-800 block text-[11px] font-medium">Grau de Parentesco</span>
+                  <span className="font-semibold text-slate-800">{guardianData.relationship || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="text-amber-800 block text-[11px] font-medium">WhatsApp / Telefone</span>
+                  <a 
+                    href={`tel:${guardianData.phone}`}
+                    className="font-bold text-brand-700 hover:underline block"
+                  >
+                    {guardianData.phone || 'Não informado'}
+                  </a>
+                </div>
               </div>
             </div>
-          </div>
+          ) : (
+            <div className="bg-purple-50/70 border border-purple-200/80 rounded-2xl p-4 space-y-2">
+              <div className="flex items-center gap-2 text-xs font-bold text-purple-900 uppercase tracking-wider">
+                <HeartHandshake className="w-4 h-4 text-purple-700" />
+                <span>Contato de Emergência</span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 text-xs pt-1">
+                <div>
+                  <span className="text-purple-600 block text-[11px]">Nome do Contato</span>
+                  <span className="font-bold text-purple-950">{patient.emergencyContact?.name || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="text-purple-600 block text-[11px]">Parentesco / Vínculo</span>
+                  <span className="font-semibold text-purple-900">{patient.emergencyContact?.relationship || 'Não informado'}</span>
+                </div>
+                <div>
+                  <span className="text-purple-600 block text-[11px]">Telefone de Emergência</span>
+                  <span className="font-bold text-purple-950">{patient.emergencyContact?.phone || 'Não informado'}</span>
+                </div>
+              </div>
+            </div>
+          )}
 
           {/* 4. Queixa Inicial / Motivo da Procura */}
           {preData?.initialComplaint && (

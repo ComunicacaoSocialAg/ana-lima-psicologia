@@ -1,14 +1,18 @@
 import {
+  enqueueOutbox,
+  acknowledgeOutbox,
+  listOutbox,
+} from "./localVaultCrypto";
+import {
   collection,
   doc,
   setDoc,
   deleteDoc,
   onSnapshot,
-  getDocs,
-  writeBatch,
-  Unsubscribe
-} from 'firebase/firestore';
-import { db } from './firebase';
+  runTransaction,
+  Unsubscribe,
+} from "firebase/firestore";
+import { db } from "./firebase";
 import {
   Patient,
   Session,
@@ -16,9 +20,11 @@ import {
   Assessment,
   Payment,
   ClinicSettings,
-  Anamnesis
-} from '../types';
-import { storageService, LEGACY_DEMO_IDS } from './storageService';
+  Anamnesis,
+} from "../types";
+import { storageService } from "./storageService";
+import { auditService } from "./auditService";
+import { formatDateBR } from "../utils/dateUtils";
 
 export interface CloudSyncData {
   patients?: Patient[];
@@ -35,11 +41,13 @@ export interface CloudSyncData {
 function sanitize<T>(data: T): T {
   if (data === null || data === undefined) return null as unknown as T;
   if (Array.isArray(data)) {
-    return data.map(item => sanitize(item)) as unknown as T;
+    return data.map((item) => sanitize(item)) as unknown as T;
   }
-  if (typeof data === 'object') {
+  if (typeof data === "object") {
     const clean: Record<string, unknown> = {};
-    for (const [key, value] of Object.entries(data as Record<string, unknown>)) {
+    for (const [key, value] of Object.entries(
+      data as Record<string, unknown>,
+    )) {
       if (value !== undefined) {
         clean[key] = sanitize(value);
       }
@@ -50,144 +58,20 @@ function sanitize<T>(data: T): T {
 }
 
 export const cloudSyncService = {
-  // Remove permanentemente qualquer dado de teste/demonstração legado salvo no Firestore
-  async purgeDemoDataFromCloud(userId: string): Promise<void> {
-    if (!db) return;
-    try {
-      const batch = writeBatch(db);
-      for (const id of LEGACY_DEMO_IDS.patients) {
-        batch.delete(doc(db, 'users', userId, 'patients', id));
-        batch.delete(doc(db, 'users', userId, 'anamnesis', id));
-      }
-      for (const id of LEGACY_DEMO_IDS.sessions) {
-        batch.delete(doc(db, 'users', userId, 'sessions', id));
-        batch.delete(doc(db, 'users', userId, 'payments', `pay-ses-${id}`));
-      }
-      for (const id of LEGACY_DEMO_IDS.records) {
-        batch.delete(doc(db, 'users', userId, 'records', id));
-      }
-      for (const id of LEGACY_DEMO_IDS.assessments) {
-        batch.delete(doc(db, 'users', userId, 'assessments', id));
-      }
-      for (const id of LEGACY_DEMO_IDS.payments) {
-        batch.delete(doc(db, 'users', userId, 'payments', id));
-      }
-      await batch.commit();
-    } catch (e) {
-      console.warn('Aviso ao limpar dados de demonstração da nuvem:', e);
-    }
-  },
-
-  // Envia todos os dados locais para a nuvem no primeiro login da psicóloga
   async seedLocalDataToCloud(userId: string): Promise<void> {
-    if (!db) return;
-
-    try {
-      // Primeiro garante que qualquer registro de teste/demo antigo seja removido da nuvem
-      await this.purgeDemoDataFromCloud(userId);
-
-      const patientsRef = collection(db, 'users', userId, 'patients');
-      const existing = await getDocs(patientsRef);
-
-      // Se a nuvem já tiver pacientes reais salvos, mantém sincronização
-      if (!existing.empty) {
-        console.log('Nuvem já contém dados reais do usuário. Sincronização inicial mantida.');
-        return;
-      }
-
-      console.log('Iniciando seed inicial de dados locais para o Firestore...');
-      const batch = writeBatch(db);
-
-      // 1. Pacientes
-      const localPatients = storageService.getPatients();
-      for (const p of localPatients) {
-        const ref = doc(db, 'users', userId, 'patients', p.id);
-        batch.set(ref, sanitize(p));
-      }
-
-      // 2. Sessões
-      const localSessions = storageService.getSessions();
-      for (const s of localSessions) {
-        const ref = doc(db, 'users', userId, 'sessions', s.id);
-        batch.set(ref, sanitize(s));
-      }
-
-      // 3. Prontuários
-      const localRecords = storageService.getRecords();
-      for (const r of localRecords) {
-        const ref = doc(db, 'users', userId, 'records', r.id);
-        batch.set(ref, sanitize(r));
-      }
-
-      // 4. Escalas
-      const localAssessments = storageService.getAssessments();
-      for (const a of localAssessments) {
-        const ref = doc(db, 'users', userId, 'assessments', a.id);
-        batch.set(ref, sanitize(a));
-      }
-
-      // 5. Pagamentos
-      const localPayments = storageService.getPayments();
-      for (const pay of localPayments) {
-        const ref = doc(db, 'users', userId, 'payments', pay.id);
-        batch.set(ref, sanitize(pay));
-      }
-
-      // 6. Configurações
-      const localSettings = storageService.getSettings();
-      const settingsRef = doc(db, 'users', userId, 'settings', 'clinic');
-      batch.set(settingsRef, sanitize(localSettings));
-
-      // 7. Anamneses Clínicas
-      const localAnamnesis = storageService.getAllAnamnesis();
-      for (const [patientId, anam] of Object.entries(localAnamnesis)) {
-        if (anam && patientId) {
-          const ref = doc(db, 'users', userId, 'anamnesis', patientId);
-          batch.set(ref, sanitize({ ...anam, patientId }));
-        }
-      }
-
-      await batch.commit();
-      console.log('Seed inicial de dados locais para Firestore concluído com sucesso!');
-    } catch (error) {
-      console.warn('Erro ao realizar seed de dados locais para o Firestore:', error);
-    }
-  },
-
-  // Sincroniza restauração completa de backup para a nuvem
-  async pushFullBackupToCloud(
-    userId: string,
-    data: ReturnType<typeof storageService.getFullBackupData>
-  ): Promise<void> {
-    if (!db) return;
-    try {
-      const batch = writeBatch(db);
-      for (const p of data.patients || []) {
-        batch.set(doc(db, 'users', userId, 'patients', p.id), sanitize(p));
-      }
-      for (const s of data.sessions || []) {
-        batch.set(doc(db, 'users', userId, 'sessions', s.id), sanitize(s));
-      }
-      for (const r of data.clinicalRecords || []) {
-        batch.set(doc(db, 'users', userId, 'records', r.id), sanitize(r));
-      }
-      for (const a of data.assessments || []) {
-        batch.set(doc(db, 'users', userId, 'assessments', a.id), sanitize(a));
-      }
-      for (const pay of data.payments || []) {
-        batch.set(doc(db, 'users', userId, 'payments', pay.id), sanitize(pay));
-      }
-      if (data.settings) {
-        batch.set(doc(db, 'users', userId, 'settings', 'clinic'), sanitize(data.settings));
-      }
-      for (const [patientId, anam] of Object.entries(data.anamnesis || {})) {
-        if (anam && patientId) {
-          batch.set(doc(db, 'users', userId, 'anamnesis', patientId), sanitize({ ...(anam as Anamnesis), patientId }));
-        }
-      }
-      await batch.commit();
-    } catch (e) {
-      console.warn('Erro ao enviar backup restaurado para a nuvem:', e);
+    // Replay only explicit pending mutations, never seed entire collections or purge production.
+    for (const operation of [...listOutbox()]) {
+      const methods: Record<string, string> = {
+        patient: "pushPatient",
+        session: "pushSession",
+        record: "pushRecord",
+        assessment: "pushAssessment",
+        payment: "pushPayment",
+        settings: "pushSettings",
+        anamnesis: "pushAnamnesis",
+      };
+      const method = methods[operation.kind];
+      if (method) await (this as any)[method](userId, operation.data);
     }
   },
 
@@ -195,151 +79,247 @@ export const cloudSyncService = {
   startRealtimeSync(
     userId: string,
     onDataUpdate: (data: CloudSyncData) => void,
-    onSyncStatusChange?: (status: 'synced' | 'syncing' | 'error') => void
+    onSyncStatusChange?: (status: "synced" | "syncing" | "error") => void,
   ): () => void {
     if (!db) {
-      if (onSyncStatusChange) onSyncStatusChange('error');
+      if (onSyncStatusChange) onSyncStatusChange("error");
       return () => {};
     }
 
-    if (onSyncStatusChange) onSyncStatusChange('syncing');
+    if (onSyncStatusChange) onSyncStatusChange("syncing");
     const unsubscribers: Unsubscribe[] = [];
+    const readiness = new Map<string, boolean>();
+    let failed = false;
+    const markFailed = () => {
+      failed = true;
+      onSyncStatusChange?.("error");
+    };
+    window.addEventListener("clinica-sync-error", markFailed);
+    unsubscribers.push(() =>
+      window.removeEventListener("clinica-sync-error", markFailed),
+    );
+    const acknowledge = (
+      name: string,
+      snapshot: { metadata: { fromCache: boolean; hasPendingWrites: boolean } },
+    ) => {
+      readiness.set(
+        name,
+        !snapshot.metadata.fromCache && !snapshot.metadata.hasPendingWrites,
+      );
+      onSyncStatusChange?.(
+        failed
+          ? "error"
+          : readiness.size === 8 &&
+              [...readiness.values()].every(Boolean) &&
+              listOutbox().length === 0
+            ? "synced"
+            : "syncing",
+      );
+    };
 
+    const checkQueue = () =>
+      onSyncStatusChange?.(
+        failed
+          ? "error"
+          : readiness.size === 8 &&
+              [...readiness.values()].every(Boolean) &&
+              listOutbox().length === 0
+            ? "synced"
+            : "syncing",
+      );
+    const retry = () => {
+      failed = false;
+      checkQueue();
+    };
+    window.addEventListener("clinica-outbox-changed", checkQueue);
+    window.addEventListener("clinica-sync-retry", retry);
+    unsubscribers.push(() => {
+      window.removeEventListener("clinica-outbox-changed", checkQueue);
+      window.removeEventListener("clinica-sync-retry", retry);
+    });
     try {
       // 1. Ouvinte de Pacientes
-      const patientsRef = collection(db, 'users', userId, 'patients');
+      const patientsRef = collection(db, "users", userId, "patients");
       unsubscribers.push(
-        onSnapshot(patientsRef, (snapshot) => {
-          const patients: Patient[] = [];
-          snapshot.forEach((docSnap) => {
-            const p = docSnap.data() as Patient;
-            if (!LEGACY_DEMO_IDS.patients.has(p.id)) {
-              patients.push(p);
-            }
-          });
-          onDataUpdate({ patients });
-          if (onSyncStatusChange) onSyncStatusChange('synced');
-        }, (error) => {
-          console.warn('Erro no listener de pacientes:', error);
-          if (onSyncStatusChange) onSyncStatusChange('error');
-        })
+        onSnapshot(
+          patientsRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            acknowledge("patients", snapshot);
+            const patients: Patient[] = [];
+            snapshot.forEach((docSnap) => {
+              const p = { ...docSnap.data(), id: docSnap.id } as Patient;
+              if (true) {
+                patients.push(p);
+              }
+            });
+            onDataUpdate({ patients });
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+            if (onSyncStatusChange) onSyncStatusChange("error");
+          },
+        ),
       );
 
       // 2. Ouvinte de Sessões
-      const sessionsRef = collection(db, 'users', userId, 'sessions');
+      const sessionsRef = collection(db, "users", userId, "sessions");
       unsubscribers.push(
-        onSnapshot(sessionsRef, (snapshot) => {
-          const sessions: Session[] = [];
-          snapshot.forEach((docSnap) => {
-            const s = docSnap.data() as Session;
-            if (!LEGACY_DEMO_IDS.sessions.has(s.id) && !LEGACY_DEMO_IDS.patients.has(s.patientId)) {
-              sessions.push(s);
-            }
-          });
-          onDataUpdate({ sessions });
-          if (onSyncStatusChange) onSyncStatusChange('synced');
-        }, (error) => {
-          console.warn('Erro no listener de sessões:', error);
-        })
+        onSnapshot(
+          sessionsRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            acknowledge("sessions", snapshot);
+            const sessions: Session[] = [];
+            snapshot.forEach((docSnap) => {
+              const s = { ...docSnap.data(), id: docSnap.id } as Session;
+              if (true) {
+                sessions.push(s);
+              }
+            });
+            onDataUpdate({ sessions });
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+          },
+        ),
       );
 
       // 3. Ouvinte de Prontuários
-      const recordsRef = collection(db, 'users', userId, 'records');
+      const recordsRef = collection(db, "users", userId, "records");
       unsubscribers.push(
-        onSnapshot(recordsRef, (snapshot) => {
-          const records: ClinicalRecord[] = [];
-          snapshot.forEach((docSnap) => {
-            const r = docSnap.data() as ClinicalRecord;
-            if (!LEGACY_DEMO_IDS.records.has(r.id) && !LEGACY_DEMO_IDS.patients.has(r.patientId)) {
-              records.push(r);
-            }
-          });
-          onDataUpdate({ records });
-        }, (error) => {
-          console.warn('Erro no listener de prontuários:', error);
-        })
+        onSnapshot(
+          recordsRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            acknowledge("records", snapshot);
+            const records: ClinicalRecord[] = [];
+            snapshot.forEach((docSnap) => {
+              const r = { ...docSnap.data(), id: docSnap.id } as ClinicalRecord;
+              if (true) {
+                records.push(r);
+              }
+            });
+            onDataUpdate({ records });
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+          },
+        ),
       );
 
       // 4. Ouvinte de Escalas
-      const assessmentsRef = collection(db, 'users', userId, 'assessments');
+      const assessmentsRef = collection(db, "users", userId, "assessments");
       unsubscribers.push(
-        onSnapshot(assessmentsRef, (snapshot) => {
-          const assessments: Assessment[] = [];
-          snapshot.forEach((docSnap) => {
-            const a = docSnap.data() as Assessment;
-            if (!LEGACY_DEMO_IDS.assessments.has(a.id) && !LEGACY_DEMO_IDS.patients.has(a.patientId)) {
-              assessments.push(a);
-            }
-          });
-          onDataUpdate({ assessments });
-        }, (error) => {
-          console.warn('Erro no listener de escalas:', error);
-        })
+        onSnapshot(
+          assessmentsRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            acknowledge("assessments", snapshot);
+            const assessments: Assessment[] = [];
+            snapshot.forEach((docSnap) => {
+              const a = { ...docSnap.data(), id: docSnap.id } as Assessment;
+              if (true) {
+                assessments.push(a);
+              }
+            });
+            onDataUpdate({ assessments });
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+          },
+        ),
       );
 
       // 5. Ouvinte de Pagamentos
-      const paymentsRef = collection(db, 'users', userId, 'payments');
+      const paymentsRef = collection(db, "users", userId, "payments");
       unsubscribers.push(
-        onSnapshot(paymentsRef, (snapshot) => {
-          const payments: Payment[] = [];
-          snapshot.forEach((docSnap) => {
-            const pay = docSnap.data() as Payment;
-            if (!LEGACY_DEMO_IDS.payments.has(pay.id) && !LEGACY_DEMO_IDS.patients.has(pay.patientId)) {
-              payments.push(pay);
-            }
-          });
-          onDataUpdate({ payments });
-        }, (error) => {
-          console.warn('Erro no listener de pagamentos:', error);
-        })
+        onSnapshot(
+          paymentsRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            acknowledge("payments", snapshot);
+            const payments: Payment[] = [];
+            snapshot.forEach((docSnap) => {
+              const pay = { ...docSnap.data(), id: docSnap.id } as Payment;
+              if (true) {
+                payments.push(pay);
+              }
+            });
+            onDataUpdate({ payments });
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+          },
+        ),
       );
 
       // 6. Ouvinte de Configurações
-      const settingsRef = doc(db, 'users', userId, 'settings', 'clinic');
+      const settingsRef = doc(db, "users", userId, "settings", "clinic");
       unsubscribers.push(
-        onSnapshot(settingsRef, (docSnap) => {
-          if (docSnap.exists()) {
-            onDataUpdate({ settings: docSnap.data() as ClinicSettings });
-          }
-        }, (error) => {
-          console.warn('Erro no listener de configurações:', error);
-        })
+        onSnapshot(
+          settingsRef,
+          { includeMetadataChanges: true },
+          (docSnap) => {
+            acknowledge("settings", docSnap);
+            if (docSnap.exists()) {
+              onDataUpdate({ settings: docSnap.data() as ClinicSettings });
+            }
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+          },
+        ),
       );
 
       // 7. Ouvinte de Anamneses
-      const anamnesisRef = collection(db, 'users', userId, 'anamnesis');
+      const anamnesisRef = collection(db, "users", userId, "anamnesis");
       unsubscribers.push(
-        onSnapshot(anamnesisRef, (snapshot) => {
-          const anamnesisMap: Record<string, Anamnesis> = {};
-          snapshot.forEach((docSnap) => {
-            const item = docSnap.data() as Anamnesis;
-            if (item.patientId && !LEGACY_DEMO_IDS.patients.has(item.patientId)) {
-              anamnesisMap[item.patientId] = item;
-            }
-          });
-          onDataUpdate({ anamnesis: anamnesisMap });
-        }, (error) => {
-          console.warn('Erro no listener de anamneses:', error);
-        })
+        onSnapshot(
+          anamnesisRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            acknowledge("anamnesis", snapshot);
+            const anamnesisMap: Record<string, Anamnesis> = {};
+            snapshot.forEach((docSnap) => {
+              const item = docSnap.data() as Anamnesis;
+              if (item.patientId) {
+                anamnesisMap[item.patientId] = item;
+              }
+            });
+            onDataUpdate({ anamnesis: anamnesisMap });
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+          },
+        ),
       );
 
       // 8. Ouvinte de Pré-Cadastros Públicos (enviados pelos pacientes no /cadastro)
-      const publicIntakesRef = collection(db, 'public_intakes');
+      const publicIntakesRef = collection(db, "public_intakes");
       unsubscribers.push(
-        onSnapshot(publicIntakesRef, (snapshot) => {
-          const publicIntakes: Patient[] = [];
-          snapshot.forEach((docSnap) => {
-            publicIntakes.push(docSnap.data() as Patient);
-          });
-          onDataUpdate({ publicIntakes });
-        }, (error) => {
-          console.warn('Erro no listener de pré-cadastros públicos:', error);
-        })
+        onSnapshot(
+          publicIntakesRef,
+          { includeMetadataChanges: true },
+          (snapshot) => {
+            acknowledge("publicIntakes", snapshot);
+            const publicIntakes: Patient[] = [];
+            snapshot.forEach((docSnap) => {
+              publicIntakes.push({
+                ...docSnap.data(),
+                id: docSnap.id,
+              } as Patient);
+            });
+            onDataUpdate({ publicIntakes });
+          },
+          (error) => {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+          },
+        ),
       );
-
     } catch (e) {
-      console.warn('Erro geral ao configurar listeners do Firestore:', e);
-      if (onSyncStatusChange) onSyncStatusChange('error');
+      window.dispatchEvent(new Event("clinica-sync-error"));
+      if (onSyncStatusChange) onSyncStatusChange("error");
     }
 
     // Retorna função de limpeza (unsubscribe)
@@ -361,134 +341,240 @@ export const cloudSyncService = {
   async pushPatient(userId: string, patient: Patient): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'users', userId, 'patients', patient.id);
-      await setDoc(ref, sanitize(patient));
+      const operationToken = await enqueueOutbox(
+        "patient",
+        patient.id,
+        patient,
+      );
+      const ref = doc(db, "users", userId, "patients", patient.id);
+      await runTransaction(db, async (transaction) => {
+        const cloudSnap = await transaction.get(ref);
+        if (cloudSnap.exists()) {
+          const cloudPatient = cloudSnap.data() as Patient;
+          if (cloudPatient.updatedAt && patient.updatedAt) {
+            const cloudTime = new Date(cloudPatient.updatedAt).getTime();
+            const localTime = new Date(patient.updatedAt).getTime();
+            if (cloudTime > localTime) {
+              window.dispatchEvent(new Event("clinica-sync-error"));
+              throw new Error(
+                "Conflito de paciente: alteração local preservada para revisão.",
+              );
+            }
+          }
+        }
+        transaction.set(ref, sanitize(patient));
+      });
+      await acknowledgeOutbox(operationToken);
+      if (!patient.isPreRegistration) await this.removePublicIntake(patient.id);
     } catch (e) {
-      console.warn('Erro ao sincronizar paciente na nuvem:', e);
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
   },
 
   async removePatient(
     userId: string,
     patientId: string,
-    cascadeIds?: {
-      sessionIds?: string[];
-      recordIds?: string[];
-      assessmentIds?: string[];
-      paymentIds?: string[];
-    }
+    _cascadeIds?: unknown,
   ): Promise<void> {
-    if (!db) return;
-    try {
-      const batch = writeBatch(db);
-      batch.delete(doc(db, 'users', userId, 'patients', patientId));
-      batch.delete(doc(db, 'users', userId, 'anamnesis', patientId));
-      if (cascadeIds) {
-        for (const sid of cascadeIds.sessionIds || []) {
-          batch.delete(doc(db, 'users', userId, 'sessions', sid));
-          batch.delete(doc(db, 'users', userId, 'payments', `pay-ses-${sid}`));
-        }
-        for (const rid of cascadeIds.recordIds || []) {
-          batch.delete(doc(db, 'users', userId, 'records', rid));
-        }
-        for (const aid of cascadeIds.assessmentIds || []) {
-          batch.delete(doc(db, 'users', userId, 'assessments', aid));
-        }
-        for (const pid of cascadeIds.paymentIds || []) {
-          batch.delete(doc(db, 'users', userId, 'payments', pid));
-        }
-      }
-      await batch.commit();
-    } catch (e) {
-      console.warn('Erro ao remover paciente e registros vinculados na nuvem:', e);
-    }
+    if (!db) throw new Error("Banco indisponível.");
+    await setDoc(
+      doc(db, "users", userId, "patients", patientId),
+      {
+        status: "discharged",
+        dischargeDate: new Date().toISOString().slice(0, 10),
+        updatedAt: new Date().toISOString(),
+      },
+      { merge: true },
+    );
   },
 
   async pushSession(userId: string, session: Session): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'users', userId, 'sessions', session.id);
+      const operationToken = await enqueueOutbox(
+        "session",
+        session.id,
+        session,
+      );
+      const ref = doc(db, "users", userId, "sessions", session.id);
       await setDoc(ref, sanitize(session));
+      await acknowledgeOutbox(operationToken);
     } catch (e) {
-      console.warn('Erro ao sincronizar sessão na nuvem:', e);
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
   },
 
-  async removeSession(userId: string, sessionId: string, linkedPaymentIds?: string[]): Promise<void> {
-    if (!db) return;
-    try {
-      const batch = writeBatch(db);
-      batch.delete(doc(db, 'users', userId, 'sessions', sessionId));
-      batch.delete(doc(db, 'users', userId, 'payments', `pay-ses-${sessionId}`));
-      for (const pid of linkedPaymentIds || []) {
-        batch.delete(doc(db, 'users', userId, 'payments', pid));
-      }
-      await batch.commit();
-    } catch (e) {
-      console.warn('Erro ao remover sessão e pagamento vinculado na nuvem:', e);
-    }
+  async removeSession(
+    userId: string,
+    sessionId: string,
+    _linkedPaymentIds?: string[],
+  ): Promise<void> {
+    if (!db) throw new Error("Banco indisponível.");
+    await setDoc(
+      doc(db, "users", userId, "sessions", sessionId),
+      { status: "canceled" },
+      { merge: true },
+    );
   },
 
+  // Prontuários Clínicos: Transação Atômica com Prevenção de Sobrescrita Offline & Auditoria CFP
   async pushRecord(userId: string, record: ClinicalRecord): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'users', userId, 'records', record.id);
-      await setDoc(ref, sanitize(record));
+      const operationToken = await enqueueOutbox("record", record.id, record);
+      const ref = doc(db, "users", userId, "records", record.id);
+      await runTransaction(db, async (transaction) => {
+        const cloudSnap = await transaction.get(ref);
+        if (cloudSnap.exists()) {
+          const cloudRecord = cloudSnap.data() as ClinicalRecord;
+          const cloudVer = cloudRecord.version || 1;
+          const localVer = record.version || 1;
+
+          // Se a nuvem estiver em versão superior, nunca sobrescreva (protege evoluções feitas em outro dispositivo)
+          if (cloudVer > localVer) {
+            window.dispatchEvent(new Event("clinica-sync-error"));
+            throw new Error(
+              "Conflito de prontuário: alteração local preservada para revisão.",
+            );
+          }
+
+          // Se mesma versão mas cloud tem timestamp posterior
+          if (
+            cloudVer === localVer &&
+            cloudRecord.updatedAt &&
+            record.updatedAt
+          ) {
+            const cloudTime = new Date(cloudRecord.updatedAt).getTime();
+            const localTime = new Date(record.updatedAt).getTime();
+            if (cloudTime > localTime) {
+              window.dispatchEvent(new Event("clinica-sync-error"));
+              throw new Error(
+                "Conflito de prontuário: alteração local preservada para revisão.",
+              );
+            }
+          }
+
+          // Se houve alteração de texto, garante que a versão anterior fique arquivada no histórico
+          if (
+            cloudRecord.evolution &&
+            cloudRecord.evolution !== record.evolution
+          ) {
+            const hasCloudVerInHistory = (record.history || []).some(
+              (h) => h.version === cloudVer,
+            );
+            if (!hasCloudVerInHistory) {
+              record.history = [
+                ...(record.history || []),
+                {
+                  version: cloudVer,
+                  editedAt: cloudRecord.updatedAt || new Date().toISOString(),
+                  reason:
+                    "Registro preservado automaticamente pelo controle de versão de sincronização",
+                  evolution: cloudRecord.evolution,
+                  privateNotes: cloudRecord.privateNotes,
+                },
+              ];
+            }
+          }
+        }
+
+        transaction.set(ref, sanitize(record));
+      });
+
+      // Registra trilha de auditoria para fins éticos e jurídicos (CFP 001/2009)
+      auditService.log("save_record", {
+        patientId: record.patientId,
+        patientName: record.patientName,
+        details: `Evolução clínica salva (v${record.version || 1}) - Sessão ${formatDateBR(record.sessionDate)}`,
+      });
+      await acknowledgeOutbox(operationToken);
     } catch (e) {
-      console.warn('Erro ao sincronizar prontuário na nuvem:', e);
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
   },
 
   async pushAssessment(userId: string, assessment: Assessment): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'users', userId, 'assessments', assessment.id);
+      const operationToken = await enqueueOutbox(
+        "assessment",
+        assessment.id,
+        assessment,
+      );
+      const ref = doc(db, "users", userId, "assessments", assessment.id);
       await setDoc(ref, sanitize(assessment));
+      await acknowledgeOutbox(operationToken);
     } catch (e) {
-      console.warn('Erro ao sincronizar escala na nuvem:', e);
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
   },
 
   async pushPayment(userId: string, payment: Payment): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'users', userId, 'payments', payment.id);
+      const operationToken = await enqueueOutbox(
+        "payment",
+        payment.id,
+        payment,
+      );
+      const ref = doc(db, "users", userId, "payments", payment.id);
       await setDoc(ref, sanitize(payment));
+      await acknowledgeOutbox(operationToken);
     } catch (e) {
-      console.warn('Erro ao sincronizar pagamento na nuvem:', e);
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
   },
 
   async pushSettings(userId: string, settings: ClinicSettings): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'users', userId, 'settings', 'clinic');
+      const operationToken = await enqueueOutbox(
+        "settings",
+        "clinic",
+        settings,
+      );
+      const ref = doc(db, "users", userId, "settings", "clinic");
       await setDoc(ref, sanitize(settings));
+      await acknowledgeOutbox(operationToken);
     } catch (e) {
-      console.warn('Erro ao sincronizar configurações na nuvem:', e);
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
   },
 
   async pushAnamnesis(userId: string, anamnesis: Anamnesis): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'users', userId, 'anamnesis', anamnesis.patientId);
-      await setDoc(ref, sanitize(anamnesis));
-    } catch (e) {
-      console.warn('Erro ao sincronizar anamnese na nuvem:', e);
-    }
-  },
+      const operationToken = await enqueueOutbox(
+        "anamnesis",
+        anamnesis.patientId,
+        anamnesis,
+      );
+      const ref = doc(db, "users", userId, "anamnesis", anamnesis.patientId);
+      await runTransaction(db, async (transaction) => {
+        const cloudSnap = await transaction.get(ref);
+        if (cloudSnap.exists()) {
+          const cloudAnam = cloudSnap.data() as Anamnesis;
+          if (cloudAnam.lastUpdated && anamnesis.lastUpdated) {
+            const cloudTime = new Date(cloudAnam.lastUpdated).getTime();
+            const localTime = new Date(anamnesis.lastUpdated).getTime();
+            if (cloudTime > localTime) {
+              window.dispatchEvent(new Event("clinica-sync-error"));
+              throw new Error(
+                "Conflito de anamnese: alteração local preservada para revisão.",
+              );
+            }
+          }
+        }
+        transaction.set(ref, sanitize(anamnesis));
+      });
 
-  // Envio de ficha pública de pré-cadastro pelo paciente (/cadastro)
-  async submitPublicIntake(intake: Patient): Promise<boolean> {
-    if (!db) return false;
-    try {
-      const ref = doc(db, 'public_intakes', intake.id);
-      await setDoc(ref, sanitize(intake));
-      return true;
+      auditService.log("save_record", {
+        patientId: anamnesis.patientId,
+        details: "Anamnese clínica atualizada",
+      });
+      await acknowledgeOutbox(operationToken);
     } catch (e) {
-      console.warn('Erro ao submeter pré-cadastro na nuvem:', e);
-      return false;
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
   },
 
@@ -496,10 +582,10 @@ export const cloudSyncService = {
   async removePublicIntake(intakeId: string): Promise<void> {
     if (!db) return;
     try {
-      const ref = doc(db, 'public_intakes', intakeId);
+      const ref = doc(db, "public_intakes", intakeId);
       await deleteDoc(ref);
     } catch (e) {
-      console.warn('Erro ao remover pré-cadastro público:', e);
+      window.dispatchEvent(new Event("clinica-sync-error"));
     }
-  }
+  },
 };

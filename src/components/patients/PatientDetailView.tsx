@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { 
   ArrowLeft, 
   FileText, 
@@ -16,7 +16,8 @@ import {
   Clock, 
   ShieldCheck, 
   FileCheck2,
-  FileSpreadsheet
+  FileSpreadsheet,
+  Baby
 } from 'lucide-react';
 import { 
   LineChart, 
@@ -33,6 +34,8 @@ import { SessionRecordModal } from '../clinical/SessionRecordModal';
 import { AssessmentModal } from '../assessments/AssessmentModal';
 import { PatientModal } from './PatientModal';
 import { generateReceiptPdf, generateAttendanceDeclaration, exportClinicalRecordsPdf } from '../../services/pdfService';
+import { auditService } from '../../services/auditService';
+import { formatDateBR } from '../../utils/dateUtils';
 
 type DetailTab = 'records' | 'anamnesis' | 'assessments' | 'financial' | 'info';
 
@@ -72,6 +75,17 @@ export const PatientDetailView: React.FC = () => {
   const [riskFactors, setRiskFactors] = useState(initialAnamnesis?.riskFactors || '');
   const [protectiveFactors, setProtectiveFactors] = useState(initialAnamnesis?.protectiveFactors || '');
   const [therapeuticGoals, setTherapeuticGoals] = useState(initialAnamnesis?.therapeuticGoals || '');
+
+  // Registro de Auditoria Ética (CFP 001/2009 e LGPD): Registra acesso visual ao prontuário
+  useEffect(() => {
+    if (patient) {
+      auditService.log('view_record', {
+        patientId: patient.id,
+        patientName: patient.name,
+        details: 'Consulta e acesso ao prontuário e ficha clínica'
+      });
+    }
+  }, [patient?.id]);
 
   if (!patient) {
     return (
@@ -173,7 +187,7 @@ export const PatientDetailView: React.FC = () => {
                 </span>
               </div>
               <p className="text-xs text-slate-500 mt-1">
-                {patient.phone} • {patient.email || 'Sem e-mail'} • CPF: {patient.cpf || 'Não informado'} • Início: {patient.startDate}
+                {patient.phone} • {patient.email || 'Sem e-mail'} • CPF: {patient.cpf || 'Não informado'} • Início: {formatDateBR(patient.startDate)}
               </p>
             </div>
           </div>
@@ -303,7 +317,7 @@ export const PatientDetailView: React.FC = () => {
                       </div>
                       <div>
                         <div className="flex items-center gap-2">
-                          <h4 className="font-bold text-sm text-slate-900">Sessão em {record.sessionDate}</h4>
+                          <h4 className="font-bold text-sm text-slate-900">Sessão em {formatDateBR(record.sessionDate)}</h4>
                           <span className="text-[10px] uppercase font-bold bg-slate-100 text-slate-600 px-2 py-0.5 rounded">
                             {record.modality}
                           </span>
@@ -596,7 +610,7 @@ export const PatientDetailView: React.FC = () => {
                     <span className="text-xs font-bold bg-brand-50 text-brand-800 px-2.5 py-1 rounded-lg border border-brand-200">
                       {a.type}
                     </span>
-                    <span className="text-xs text-slate-500">{a.date}</span>
+                    <span className="text-xs text-slate-500">{formatDateBR(a.date)}</span>
                   </div>
 
                   <div className="flex items-baseline gap-3">
@@ -655,7 +669,7 @@ export const PatientDetailView: React.FC = () => {
                   <div key={ses.id} className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-3 text-xs">
                     <div>
                       <div className="flex items-center gap-2 font-semibold text-slate-900">
-                        <span>Data: {ses.date} ({ses.startTime} - {ses.endTime})</span>
+                        <span>Data: {formatDateBR(ses.date)} ({ses.startTime} - {ses.endTime})</span>
                         <span className={`px-2 py-0.5 rounded-full text-[10px] font-bold ${
                           ses.paymentStatus === 'paid' ? 'bg-emerald-100 text-emerald-800' : 'bg-amber-100 text-amber-800'
                         }`}>
@@ -706,7 +720,7 @@ export const PatientDetailView: React.FC = () => {
             </div>
             <div>
               <span className="font-bold text-slate-500 uppercase tracking-wider block">Data de Nascimento</span>
-              <p className="text-slate-900 font-medium mt-0.5">{patient.birthDate || 'Não informada'}</p>
+              <p className="text-slate-900 font-medium mt-0.5">{formatDateBR(patient.birthDate) || 'Não informada'}</p>
             </div>
             <div>
               <span className="font-bold text-slate-500 uppercase tracking-wider block">Telefone / WhatsApp</span>
@@ -724,14 +738,55 @@ export const PatientDetailView: React.FC = () => {
               <span className="font-bold text-slate-500 uppercase tracking-wider block">Endereço Residencial</span>
               <p className="text-slate-900 font-medium mt-0.5">{patient.address || 'Não informado'}</p>
             </div>
-            <div>
-              <span className="font-bold text-slate-500 uppercase tracking-wider block">Contato de Emergência</span>
-              <p className="text-slate-900 font-medium mt-0.5">
-                {patient.emergencyContact?.name 
-                  ? `${patient.emergencyContact.name} (${patient.emergencyContact.relationship}) - ${patient.emergencyContact.phone}` 
-                  : 'Nenhum cadastrado'}
-              </p>
-            </div>
+            {patient.isMinor || patient.guardianCpf || patient.guardianName || (typeof patient.legalGuardian === 'object' && patient.legalGuardian?.name) ? (
+              <div className="sm:col-span-2 bg-amber-50/70 border border-amber-200/90 rounded-2xl p-4 mt-1 space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="font-bold text-amber-900 uppercase tracking-wider block text-xs flex items-center gap-1.5">
+                    <ShieldCheck className="w-4 h-4 text-amber-600" />
+                    <span>Responsável Legal (Paciente Menor de Idade)</span>
+                  </span>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-200/80 text-amber-950 flex items-center gap-1">
+                    <Baby className="w-3 h-3 text-amber-700" />
+                    Menor de Idade (CFP / IRPF)
+                  </span>
+                </div>
+                <div className="grid grid-cols-1 sm:grid-cols-4 gap-3 text-xs pt-1">
+                  <div>
+                    <span className="text-amber-800 block text-[11px] font-medium">Nome do Responsável</span>
+                    <p className="text-slate-900 font-bold mt-0.5">
+                      {patient.guardianName || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.name : patient.legalGuardian) || patient.emergencyContact?.name || 'Não informado'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-amber-800 block text-[11px] font-medium">CPF do Responsável (IRPF)</span>
+                    <p className="font-mono font-bold text-slate-900 mt-0.5 bg-white px-2 py-0.5 rounded border border-amber-200 inline-block">
+                      {patient.guardianCpf || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.cpf : '') || 'Não informado'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-amber-800 block text-[11px] font-medium">Parentesco / Vínculo</span>
+                    <p className="text-slate-900 font-medium mt-0.5">
+                      {patient.guardianRelationship || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.relationship : '') || patient.emergencyContact?.relationship || 'Não informado'}
+                    </p>
+                  </div>
+                  <div>
+                    <span className="text-amber-800 block text-[11px] font-medium">WhatsApp / Telefone</span>
+                    <p className="font-bold text-brand-700 mt-0.5">
+                      {patient.guardianPhone || (typeof patient.legalGuardian === 'object' ? patient.legalGuardian?.phone : '') || patient.emergencyContact?.phone || 'Não informado'}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            ) : (
+              <div>
+                <span className="font-bold text-slate-500 uppercase tracking-wider block">Contato de Emergência</span>
+                <p className="text-slate-900 font-medium mt-0.5">
+                  {patient.emergencyContact?.name 
+                    ? `${patient.emergencyContact.name} (${patient.emergencyContact.relationship}) - ${patient.emergencyContact.phone}` 
+                    : 'Nenhum cadastrado'}
+                </p>
+              </div>
+            )}
           </div>
         </div>
       )}

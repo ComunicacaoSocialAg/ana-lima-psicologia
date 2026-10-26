@@ -20,6 +20,13 @@ export interface EmergencyContact {
   phone: string;
 }
 
+export interface LegalGuardian {
+  name: string;
+  relationship: string;
+  cpf: string;
+  phone: string;
+}
+
 export interface Patient {
   id: string;
   name: string;
@@ -33,7 +40,12 @@ export interface Patient {
   email?: string;
   address?: string;
   emergencyContact?: EmergencyContact;
-  legalGuardian?: string; // Se menor de idade
+  legalGuardian?: LegalGuardian | string; // Se menor de idade
+  guardianName?: string;
+  guardianCpf?: string;
+  guardianRelationship?: string;
+  guardianPhone?: string;
+  isMinor?: boolean;
   status: PatientStatus;
   preferredModality: Modality;
   agreedPrice: number;
@@ -106,6 +118,8 @@ export interface Session {
   endTime: string;                   // HH:mm
   modality: Modality;
   meetLink?: string;
+  googleEventId?: string;
+  googleCalendarUrl?: string;
   status: SessionStatus;
   price: number;
   paymentStatus: PaymentStatus;
@@ -184,3 +198,35 @@ export interface DashboardMetrics {
   pendingRecordsCount: number;
   onlineSessionsPercentage: number;
 }
+
+export interface BlogFaqItem {
+  question: string;
+  answer: string;
+}
+
+export type BlogPostStatus = 'draft' | 'published';
+
+export interface BlogPost {
+  id: string;
+  title: string;
+  slug: string;
+  excerpt: string;
+  contentHtml: string;
+  coverImageUrl?: string;
+  coverImageCaption?: string;
+  coverImagePosition?: 'center' | 'top' | 'bottom';
+  category: string;
+  tags: string[];
+  status: BlogPostStatus;
+  readTimeMinutes: number;
+  publishedAt?: string;
+  createdAt: string;
+  updatedAt: string;
+  authorName: string;
+  authorCrp: string;
+  seoTitle?: string;
+  seoDescription?: string;
+  seoKeywords?: string[];
+  faqItems?: BlogFaqItem[];
+}
+

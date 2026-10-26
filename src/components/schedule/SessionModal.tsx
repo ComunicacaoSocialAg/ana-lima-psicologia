@@ -1,8 +1,11 @@
 import React, { useState, useEffect } from 'react';
-import { X, Calendar, Clock, Video, DollarSign, Save, MessageSquare } from 'lucide-react';
+import { X, Calendar, Clock, Video, DollarSign, Save, MessageSquare, Sparkles, CheckCircle2 } from 'lucide-react';
 import { Session, SessionStatus, Modality, PaymentStatus } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { WhatsAppModal } from '../common/WhatsAppModal';
+import { PatientAutocomplete } from '../common/PatientAutocomplete';
+import { authService } from '../../services/authService';
+import { syncSessionToGoogleCalendar } from '../../services/calendarService';
 
 interface SessionModalProps {
   isOpen: boolean;
@@ -27,6 +30,10 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   const [endTime, setEndTime] = useState('14:50');
   const [modality, setModality] = useState<Modality>('presencial');
   const [meetLink, setMeetLink] = useState('');
+  const [googleEventId, setGoogleEventId] = useState<string | undefined>(undefined);
+  const [googleCalendarUrl, setGoogleCalendarUrl] = useState<string | undefined>(undefined);
+  const [isSyncingGoogle, setIsSyncingGoogle] = useState(false);
+  const [googleSyncedMsg, setGoogleSyncedMsg] = useState<string | null>(null);
   const [status, setStatus] = useState<SessionStatus>('scheduled');
   const [price, setPrice] = useState(200);
   const [paymentStatus, setPaymentStatus] = useState<PaymentStatus>('pending');
@@ -35,6 +42,7 @@ export const SessionModal: React.FC<SessionModalProps> = ({
   const [whatsAppPayload, setWhatsAppPayload] = useState<{ session: Session; patient: any } | null>(null);
 
   useEffect(() => {
+    setGoogleSyncedMsg(null);
     if (sessionToEdit) {
       setPatientId(sessionToEdit.patientId);
       setDate(sessionToEdit.date);
@@ -42,6 +50,8 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       setEndTime(sessionToEdit.endTime);
       setModality(sessionToEdit.modality);
       setMeetLink(sessionToEdit.meetLink || '');
+      setGoogleEventId(sessionToEdit.googleEventId);
+      setGoogleCalendarUrl(sessionToEdit.googleCalendarUrl);
       setStatus(sessionToEdit.status);
       setPrice(sessionToEdit.price);
       setPaymentStatus(sessionToEdit.paymentStatus);
@@ -60,6 +70,8 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       setStartTime('14:00');
       setEndTime('14:50');
       setMeetLink(settings.defaultOnlineLink || '');
+      setGoogleEventId(undefined);
+      setGoogleCalendarUrl(undefined);
       setStatus('scheduled');
       setPaymentStatus('pending');
       setNotes('');
@@ -84,13 +96,69 @@ export const SessionModal: React.FC<SessionModalProps> = ({
     }
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleGenerateGoogleMeetAndCalendar = async () => {
+    const patient = patients.find(p => p.id === patientId);
+    if (!patient) {
+      alert('Selecione um paciente primeiro.');
+      return;
+    }
+
+    setIsSyncingGoogle(true);
+    setGoogleSyncedMsg(null);
+    try {
+      if (!authService.hasGoogleCalendarIntegration()) {
+        await authService.reconnectGoogleCalendar();
+      }
+      const tempSession: Session = {
+        id: sessionToEdit?.id || `ses-${Date.now()}`,
+        patientId: patient.id,
+        patientName: patient.name,
+        patientPhone: patient.phone,
+        date,
+        startTime,
+        endTime,
+        modality,
+        meetLink: modality === 'online' ? meetLink : undefined,
+        googleEventId,
+        status,
+        price: Number(price) || 200,
+        paymentStatus,
+        hasRecord: sessionToEdit?.hasRecord || false,
+        notes: notes.trim() || undefined,
+        createdAt: sessionToEdit?.createdAt || new Date().toISOString(),
+      };
+
+      const gcalRes = await syncSessionToGoogleCalendar(tempSession, patient, settings.address);
+      if (gcalRes) {
+        setGoogleEventId(gcalRes.googleEventId);
+        setGoogleCalendarUrl(gcalRes.googleCalendarUrl);
+        if (gcalRes.meetLink) {
+          setMeetLink(gcalRes.meetLink);
+        }
+        setGoogleSyncedMsg(
+          modality === 'online'
+            ? 'Sala Google Meet criada e agendada no Google Agenda!'
+            : 'Sessão sincronizada com seu Google Agenda!'
+        );
+      }
+    } catch (err) {
+      console.warn('Erro ao gerar Google Meet/Calendar:', err);
+    } finally {
+      setIsSyncingGoogle(false);
+    }
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     const patient = patients.find(p => p.id === patientId);
     if (!patient) {
       alert('Selecione um paciente.');
       return;
     }
+
+    let finalMeetLink = modality === 'online' ? (meetLink.trim() || settings.defaultOnlineLink) : undefined;
+    let finalGoogleEventId = googleEventId;
+    let finalGoogleCalendarUrl = googleCalendarUrl;
 
     const payload: Session = {
       id: sessionToEdit?.id || `ses-${Date.now()}`,
@@ -101,7 +169,9 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       startTime,
       endTime,
       modality,
-      meetLink: modality === 'online' ? (meetLink.trim() || settings.defaultOnlineLink) : undefined,
+      meetLink: finalMeetLink,
+      googleEventId: finalGoogleEventId,
+      googleCalendarUrl: finalGoogleCalendarUrl,
       status,
       price: Number(price) || 200,
       paymentStatus,
@@ -110,6 +180,25 @@ export const SessionModal: React.FC<SessionModalProps> = ({
       notes: notes.trim() || undefined,
       createdAt: sessionToEdit?.createdAt || new Date().toISOString(),
     };
+
+    // Se já estiver conectado com Google e ainda não gerou o evento/Meet, gera imediatamente antes de abrir o WhatsApp
+    if (authService.hasGoogleCalendarIntegration() && !finalGoogleEventId) {
+      setIsSyncingGoogle(true);
+      try {
+        const gcalRes = await syncSessionToGoogleCalendar(payload, patient, settings.address);
+        if (gcalRes) {
+          payload.googleEventId = gcalRes.googleEventId;
+          payload.googleCalendarUrl = gcalRes.googleCalendarUrl;
+          if (modality === 'online' && gcalRes.meetLink) {
+            payload.meetLink = gcalRes.meetLink;
+          }
+        }
+      } catch {
+        // segue normalmente
+      } finally {
+        setIsSyncingGoogle(false);
+      }
+    }
 
     saveSession(payload);
     if (notifyWhatsApp) {
@@ -149,23 +238,15 @@ export const SessionModal: React.FC<SessionModalProps> = ({
         {/* Content */}
         <div className="flex-1 overflow-y-auto p-6 space-y-4">
           <form id="session-form" onSubmit={handleSubmit} className="space-y-4">
-            {/* Paciente */}
+            {/* Paciente (Busca Inteligente + Lista Completa + Cadastro Rápido) */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Paciente <span className="text-rose-500">*</span>
               </label>
-              <select
-                required
-                value={patientId}
-                onChange={(e) => handlePatientSelect(e.target.value)}
-                className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 font-medium focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-              >
-                {patients.map(p => (
-                  <option key={p.id} value={p.id}>
-                    {p.name} — {p.phone} ({p.preferredModality})
-                  </option>
-                ))}
-              </select>
+              <PatientAutocomplete
+                selectedPatientId={patientId}
+                onSelectPatient={(p) => handlePatientSelect(p.id)}
+              />
             </div>
 
             {/* Data e Horário */}
@@ -233,21 +314,51 @@ export const SessionModal: React.FC<SessionModalProps> = ({
               </div>
             </div>
 
-            {modality === 'online' && (
-              <div>
-                <label className="block text-xs font-semibold text-slate-700 mb-1 flex items-center gap-1.5">
+            <div className="bg-slate-50 border border-slate-200 rounded-xl p-3 space-y-2.5">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <label className="text-xs font-semibold text-slate-700 flex items-center gap-1.5">
                   <Video className="w-3.5 h-3.5 text-brand-600" />
-                  <span>Link da Sala Virtual (Google Meet / Vídeo)</span>
+                  <span>
+                    {modality === 'online'
+                      ? 'Sala Virtual Google Meet & Google Agenda'
+                      : 'Sincronização com Google Agenda'}
+                  </span>
                 </label>
+
+                <button
+                  type="button"
+                  onClick={handleGenerateGoogleMeetAndCalendar}
+                  disabled={isSyncingGoogle}
+                  className="inline-flex items-center gap-1.5 px-2.5 py-1 bg-white hover:bg-brand-50 text-brand-700 border border-brand-300 rounded-lg text-[11px] font-semibold shadow-2xs transition-all disabled:opacity-50"
+                >
+                  <Sparkles className="w-3.5 h-3.5 text-brand-600" />
+                  <span>
+                    {isSyncingGoogle
+                      ? 'Conectando ao Google...'
+                      : modality === 'online'
+                      ? 'Gerar Google Meet + Google Agenda'
+                      : 'Sincronizar no Google Agenda'}
+                  </span>
+                </button>
+              </div>
+
+              {modality === 'online' && (
                 <input
                   type="url"
                   placeholder="https://meet.google.com/..."
                   value={meetLink}
                   onChange={(e) => setMeetLink(e.target.value)}
-                  className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
                 />
-              </div>
-            )}
+              )}
+
+              {googleSyncedMsg && (
+                <div className="flex items-center gap-1.5 text-[11px] font-medium text-emerald-700 bg-emerald-50 border border-emerald-200 px-2.5 py-1.5 rounded-lg">
+                  <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600 shrink-0" />
+                  <span>{googleSyncedMsg}</span>
+                </div>
+              )}
+            </div>
 
             {/* Financeiro */}
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-2 border-t border-slate-200">

@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, User, Phone, DollarSign, Calendar, HeartHandshake } from 'lucide-react';
+import { X, Save, User, Phone, DollarSign, Calendar, HeartHandshake, Baby, ShieldCheck } from 'lucide-react';
 import { Patient, PatientStatus, Modality } from '../../types';
 import { useApp } from '../../context/AppContext';
 
@@ -8,6 +8,23 @@ interface PatientModalProps {
   onClose: () => void;
   patientToEdit?: Patient | null;
 }
+
+const calculateAge = (dateStr?: string): number | null => {
+  if (!dateStr) return null;
+  const parts = dateStr.split('-');
+  if (parts.length !== 3) return null;
+  const y = parseInt(parts[0], 10);
+  const m = parseInt(parts[1], 10) - 1;
+  const d = parseInt(parts[2], 10);
+  if (isNaN(y) || isNaN(m) || isNaN(d)) return null;
+  const today = new Date();
+  let age = today.getFullYear() - y;
+  const monthDiff = today.getMonth() - m;
+  if (monthDiff < 0 || (monthDiff === 0 && today.getDate() < d)) {
+    age--;
+  }
+  return isNaN(age) || age < 0 ? null : age;
+};
 
 export const PatientModal: React.FC<PatientModalProps> = ({
   isOpen,
@@ -26,10 +43,19 @@ export const PatientModal: React.FC<PatientModalProps> = ({
   const [phone, setPhone] = useState('');
   const [email, setEmail] = useState('');
   const [address, setAddress] = useState('');
+
+  // Menor de Idade & Responsável Legal
+  const [isMinor, setIsMinor] = useState(false);
+  const [guardianName, setGuardianName] = useState('');
+  const [guardianCpf, setGuardianCpf] = useState('');
+  const [guardianRelationship, setGuardianRelationship] = useState('Mãe');
+  const [guardianPhone, setGuardianPhone] = useState('');
+
+  // Contato de Emergência (Paciente Adulto)
   const [emergencyName, setEmergencyName] = useState('');
-  const [emergencyRelationship, setEmergencyRelationship] = useState('');
+  const [emergencyRelationship, setEmergencyRelationship] = useState('Cônjuge / Parceiro(a)');
   const [emergencyPhone, setEmergencyPhone] = useState('');
-  const [legalGuardian, setLegalGuardian] = useState('');
+
   const [status, setStatus] = useState<PatientStatus>('active');
   const [preferredModality, setPreferredModality] = useState<Modality>('presencial');
   const [agreedPrice, setAgreedPrice] = useState(200);
@@ -49,10 +75,29 @@ export const PatientModal: React.FC<PatientModalProps> = ({
       setPhone(patientToEdit.phone || '');
       setEmail(patientToEdit.email || '');
       setAddress(patientToEdit.address || '');
+
+      const minorFlag = Boolean(
+        patientToEdit.isMinor ||
+        patientToEdit.guardianCpf ||
+        patientToEdit.guardianName ||
+        (typeof patientToEdit.legalGuardian === 'object' && patientToEdit.legalGuardian?.name) ||
+        (patientToEdit.birthDate && calculateAge(patientToEdit.birthDate) !== null && calculateAge(patientToEdit.birthDate)! < 18)
+      );
+      setIsMinor(minorFlag);
+
+      const gName = patientToEdit.guardianName || (typeof patientToEdit.legalGuardian === 'object' ? patientToEdit.legalGuardian?.name : (patientToEdit.legalGuardian || ''));
+      const gCpf = patientToEdit.guardianCpf || (typeof patientToEdit.legalGuardian === 'object' ? patientToEdit.legalGuardian?.cpf : '');
+      const gRel = patientToEdit.guardianRelationship || (typeof patientToEdit.legalGuardian === 'object' ? patientToEdit.legalGuardian?.relationship : '') || 'Mãe';
+      const gPhone = patientToEdit.guardianPhone || (typeof patientToEdit.legalGuardian === 'object' ? patientToEdit.legalGuardian?.phone : '');
+      setGuardianName(gName);
+      setGuardianCpf(gCpf);
+      setGuardianRelationship(gRel);
+      setGuardianPhone(gPhone);
+
       setEmergencyName(patientToEdit.emergencyContact?.name || '');
-      setEmergencyRelationship(patientToEdit.emergencyContact?.relationship || '');
+      setEmergencyRelationship(patientToEdit.emergencyContact?.relationship || 'Cônjuge / Parceiro(a)');
       setEmergencyPhone(patientToEdit.emergencyContact?.phone || '');
-      setLegalGuardian(patientToEdit.legalGuardian || '');
+
       setStatus(patientToEdit.status || 'active');
       setPreferredModality(patientToEdit.preferredModality || 'presencial');
       setAgreedPrice(patientToEdit.agreedPrice || 200);
@@ -70,10 +115,14 @@ export const PatientModal: React.FC<PatientModalProps> = ({
       setPhone('');
       setEmail('');
       setAddress('');
+      setIsMinor(false);
+      setGuardianName('');
+      setGuardianCpf('');
+      setGuardianRelationship('Mãe');
+      setGuardianPhone('');
       setEmergencyName('');
-      setEmergencyRelationship('');
+      setEmergencyRelationship('Cônjuge / Parceiro(a)');
       setEmergencyPhone('');
-      setLegalGuardian('');
       setStatus('active');
       setPreferredModality('presencial');
       setAgreedPrice(200);
@@ -85,6 +134,14 @@ export const PatientModal: React.FC<PatientModalProps> = ({
 
   if (!isOpen) return null;
 
+  const handleBirthDateChange = (val: string) => {
+    setBirthDate(val);
+    const a = calculateAge(val);
+    if (a !== null) {
+      setIsMinor(a < 18);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!name.trim()) {
@@ -95,21 +152,35 @@ export const PatientModal: React.FC<PatientModalProps> = ({
     const payload: Patient = {
       id: patientToEdit?.id || `pat-${Date.now()}`,
       name: name.trim(),
-      cpf: cpf.trim() || undefined,
+      cpf: cpf.trim() || (isMinor ? guardianCpf.trim() : undefined) || undefined,
       rg: rg.trim() || undefined,
       birthDate: birthDate || undefined,
       gender,
-      profession: profession.trim() || undefined,
-      maritalStatus,
-      phone: phone.trim(),
+      profession: profession.trim() || (isMinor ? 'Estudante' : undefined),
+      maritalStatus: isMinor ? 'Solteiro(a)' : maritalStatus,
+      phone: phone.trim() || (isMinor ? guardianPhone.trim() : ''),
       email: email.trim() || undefined,
       address: address.trim() || undefined,
-      emergencyContact: emergencyName.trim() ? {
+      isMinor: isMinor,
+      emergencyContact: isMinor ? (guardianName.trim() ? {
+        name: guardianName.trim(),
+        relationship: guardianRelationship.trim() || 'Responsável Legal',
+        phone: guardianPhone.trim() || phone.trim(),
+      } : undefined) : (emergencyName.trim() ? {
         name: emergencyName.trim(),
-        relationship: emergencyRelationship.trim(),
+        relationship: emergencyRelationship.trim() || 'Contato',
         phone: emergencyPhone.trim(),
+      } : undefined),
+      legalGuardian: isMinor && guardianName.trim() ? {
+        name: guardianName.trim(),
+        relationship: guardianRelationship.trim() || 'Responsável Legal',
+        cpf: guardianCpf.trim(),
+        phone: guardianPhone.trim(),
       } : undefined,
-      legalGuardian: legalGuardian.trim() || undefined,
+      guardianName: isMinor ? guardianName.trim() || undefined : undefined,
+      guardianCpf: isMinor ? guardianCpf.trim() || undefined : undefined,
+      guardianRelationship: isMinor ? guardianRelationship.trim() || undefined : undefined,
+      guardianPhone: isMinor ? guardianPhone.trim() || undefined : undefined,
       status,
       preferredModality,
       agreedPrice: Number(agreedPrice) || 200,
@@ -196,9 +267,27 @@ export const PatientModal: React.FC<PatientModalProps> = ({
                   <input
                     type="date"
                     value={birthDate}
-                    onChange={(e) => setBirthDate(e.target.value)}
+                    onChange={(e) => handleBirthDateChange(e.target.value)}
                     className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
                   />
+                </div>
+
+                <div className="sm:col-span-2 flex items-center justify-between p-2.5 bg-slate-50 border border-slate-200 rounded-xl">
+                  <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-slate-700">
+                    <input
+                      type="checkbox"
+                      checked={isMinor}
+                      onChange={(e) => setIsMinor(e.target.checked)}
+                      className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300"
+                    />
+                    <span>Paciente é menor de 18 anos (exige identificação do Responsável Legal e CPF)</span>
+                  </label>
+                  {isMinor && (
+                    <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-amber-100 text-amber-900 border border-amber-200 flex items-center gap-1">
+                      <Baby className="w-3 h-3 text-amber-700" />
+                      Menor de Idade
+                    </span>
+                  )}
                 </div>
 
                 <div>
@@ -282,46 +371,120 @@ export const PatientModal: React.FC<PatientModalProps> = ({
               </div>
             </div>
 
-            {/* Seção 3: Contato de Emergência */}
-            <div className="pt-2 border-t border-slate-200">
-              <h4 className="text-xs font-bold text-brand-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
-                <HeartHandshake className="w-3.5 h-3.5" />
-                <span>Contato de Emergência</span>
-              </h4>
+            {/* Seção 3: Responsável Legal ou Contato de Emergência */}
+            {isMinor ? (
+              <div className="pt-2 border-t border-slate-200">
+                <div className="flex items-center justify-between mb-3">
+                  <h4 className="text-xs font-bold text-amber-800 uppercase tracking-wider flex items-center gap-1.5">
+                    <ShieldCheck className="w-3.5 h-3.5 text-amber-600" />
+                    <span>Responsável Legal (CFP & Fiscal)</span>
+                  </h4>
+                  <span className="text-[10px] font-bold px-2 py-0.5 rounded bg-amber-100 text-amber-900 border border-amber-200">
+                    Obrigatório para Menores de 18 anos
+                  </span>
+                </div>
 
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Nome</label>
-                  <input
-                    type="text"
-                    placeholder="Nome do contato"
-                    value={emergencyName}
-                    onChange={(e) => setEmergencyName(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Parentesco</label>
-                  <input
-                    type="text"
-                    placeholder="Ex: Mãe, Cônjuge..."
-                    value={emergencyRelationship}
-                    onChange={(e) => setEmergencyRelationship(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
-                </div>
-                <div>
-                  <label className="block text-xs font-semibold text-slate-700 mb-1">Telefone</label>
-                  <input
-                    type="text"
-                    placeholder="(00) 00000-0000"
-                    value={emergencyPhone}
-                    onChange={(e) => setEmergencyPhone(e.target.value)}
-                    className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                  />
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Nome do Responsável Legal <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="Nome do pai, mãe ou tutor"
+                      value={guardianName}
+                      onChange={(e) => setGuardianName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      CPF do Responsável (Recibos IRPF) <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="000.000.000-00"
+                      value={guardianCpf}
+                      onChange={(e) => setGuardianCpf(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Grau de Parentesco / Vínculo <span className="text-rose-500">*</span>
+                    </label>
+                    <select
+                      value={guardianRelationship}
+                      onChange={(e) => setGuardianRelationship(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    >
+                      <option value="Mãe">Mãe</option>
+                      <option value="Pai">Pai</option>
+                      <option value="Tutor(a) Legal">Tutor(a) Legal</option>
+                      <option value="Guardião(ã) Legal">Guardião(ã) Legal</option>
+                      <option value="Avó / Avô (Responsável Legal)">Avó / Avô (Responsável Legal)</option>
+                      <option value="Tio(a) (Responsável Legal)">Tio(a) (Responsável Legal)</option>
+                      <option value="Outro Responsável Legal">Outro Responsável Legal</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      WhatsApp / Telefone do Responsável <span className="text-rose-500">*</span>
+                    </label>
+                    <input
+                      type="text"
+                      placeholder="(00) 00000-0000"
+                      value={guardianPhone}
+                      onChange={(e) => setGuardianPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                  </div>
                 </div>
               </div>
-            </div>
+            ) : (
+              <div className="pt-2 border-t border-slate-200">
+                <h4 className="text-xs font-bold text-brand-700 uppercase tracking-wider mb-3 flex items-center gap-1.5">
+                  <HeartHandshake className="w-3.5 h-3.5" />
+                  <span>Contato de Emergência</span>
+                </h4>
+
+                <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Nome</label>
+                    <input
+                      type="text"
+                      placeholder="Nome do contato"
+                      value={emergencyName}
+                      onChange={(e) => setEmergencyName(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Parentesco</label>
+                    <input
+                      type="text"
+                      placeholder="Ex: Cônjuge, Mãe, Amigo..."
+                      value={emergencyRelationship}
+                      onChange={(e) => setEmergencyRelationship(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                  </div>
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">Telefone</label>
+                    <input
+                      type="text"
+                      placeholder="(00) 00000-0000"
+                      value={emergencyPhone}
+                      onChange={(e) => setEmergencyPhone(e.target.value)}
+                      className="w-full px-3 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* Seção 4: Configurações do Atendimento */}
             <div className="pt-2 border-t border-slate-200">

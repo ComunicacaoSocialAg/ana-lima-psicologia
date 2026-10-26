@@ -1,4 +1,5 @@
 import { WhatsAppTemplates } from '../types';
+import { formatDateBR } from '../utils/dateUtils';
 
 export const DEFAULT_TEMPLATES: WhatsAppTemplates = {
   reminder: "Olá, {nome}! Tudo bem? Passando para lembrar do nosso horário agendado para amanhã ({data}) às {hora}. Caso precise de qualquer ajuste, por favor me avise com antecedência. Um abraço, Ana Lima.",
@@ -32,7 +33,10 @@ export function formatWhatsAppMessage(
 ): string {
   let message = template;
   if (params.nome) message = message.replace(/{nome}/g, params.nome.split(' ')[0]); // Primeiro nome
-  if (params.data) message = message.replace(/{data}/g, params.data);
+  if (params.data) {
+    const formattedData = formatDateBR(params.data);
+    message = message.replace(/{data}/g, formattedData);
+  }
   if (params.hora) message = message.replace(/{hora}/g, params.hora);
   if (params.link) message = message.replace(/{link}/g, params.link);
   if (params.valor) message = message.replace(/{valor}/g, String(params.valor));

@@ -1,7 +1,18 @@
-import React, { useState } from 'react';
-import { X, Lock, Mail, Key, Sparkles, AlertCircle, CheckCircle2, User as UserIcon, ArrowRight, ShieldCheck } from 'lucide-react';
-import { authService, formatAuthError } from '../../services/authService';
-import { DandelionLogo } from '../common/DandelionLogo';
+import React, { useState } from "react";
+import {
+  X,
+  Lock,
+  Mail,
+  Key,
+  Sparkles,
+  AlertCircle,
+  CheckCircle2,
+  User as UserIcon,
+  ArrowRight,
+  ShieldCheck,
+} from "lucide-react";
+import { authService, formatAuthError } from "../../services/authService";
+import { DandelionLogo } from "../common/DandelionLogo";
 
 interface AuthModalProps {
   isOpen: boolean;
@@ -9,11 +20,14 @@ interface AuthModalProps {
   onSuccess?: () => void;
 }
 
-export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess }) => {
-  const [mode, setMode] = useState<'login' | 'register' | 'forgot'>('login');
-  const [email, setEmail] = useState('contato.anaplima@gmail.com');
-  const [password, setPassword] = useState('');
-  const [name, setName] = useState('Ana Lima');
+export const AuthModal: React.FC<AuthModalProps> = ({
+  isOpen,
+  onClose,
+  onSuccess,
+}) => {
+  const [mode, setMode] = useState<"login" | "forgot">("login");
+  const [email, setEmail] = useState("");
+  const [password, setPassword] = useState("");
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [successMessage, setSuccessMessage] = useState<string | null>(null);
@@ -27,24 +41,21 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setIsLoading(true);
 
     try {
-      if (mode === 'login') {
+      if (mode === "login") {
         await authService.loginWithEmail(email, password);
-        setSuccessMessage('Login efetuado com sucesso! Sincronização em nuvem ativa.');
+        setSuccessMessage(
+          "Login efetuado com sucesso! Verificando sincronização com o servidor.",
+        );
         setTimeout(() => {
           if (onSuccess) onSuccess();
           onClose();
         }, 800);
-      } else if (mode === 'register') {
-        await authService.registerWithEmail(email, password, name);
-        setSuccessMessage('Conta de acesso à nuvem criada com sucesso!');
-        setTimeout(() => {
-          if (onSuccess) onSuccess();
-          onClose();
-        }, 800);
-      } else if (mode === 'forgot') {
+      } else if (mode === "forgot") {
         await authService.sendPasswordReset(email);
-        setSuccessMessage('E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.');
-        setTimeout(() => setMode('login'), 3000);
+        setSuccessMessage(
+          "E-mail de redefinição de senha enviado! Verifique sua caixa de entrada.",
+        );
+        setTimeout(() => setMode("login"), 3000);
       }
     } catch (err: any) {
       setError(formatAuthError(err));
@@ -58,11 +69,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
     setIsLoading(true);
     try {
       await authService.loginWithGoogle();
-      setSuccessMessage('Conectado via Google! Sincronização em nuvem ativa.');
+      setSuccessMessage(
+        "Conectado com sucesso! Verificando sincronização com o servidor.",
+      );
       setTimeout(() => {
         if (onSuccess) onSuccess();
         onClose();
-      }, 800);
+      }, 900);
     } catch (err: any) {
       setError(formatAuthError(err));
     } finally {
@@ -73,7 +86,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
   return (
     <div className="fixed inset-0 z-50 bg-slate-900/60 backdrop-blur-xs flex items-center justify-center p-4">
       <div className="bg-white rounded-3xl max-w-md w-full shadow-2xl overflow-hidden border border-slate-200 animate-in fade-in zoom-in-95 duration-200">
-        
         {/* Header com Identidade Visual Dente de Leão (#1C2B22 & #F7F5F0) */}
         <div className="bg-[#1C2B22] text-[#F7F5F0] p-6 relative border-b border-[#F7F5F0]/15">
           <button
@@ -84,45 +96,39 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
           </button>
 
           <div className="flex items-center gap-3.5 mb-2">
-            <DandelionLogo size={48} variant="light" rounded="2xl" className="shadow-md ring-2 ring-[#F7F5F0]/25" />
+            <DandelionLogo
+              size={48}
+              variant="light"
+              rounded="2xl"
+              className="shadow-md ring-2 ring-[#F7F5F0]/25"
+            />
             <div>
-              <h2 className="text-lg font-bold leading-tight text-[#F7F5F0]">Sincronização em Nuvem</h2>
-              <p className="text-xs text-[#F7F5F0]/80">Consultório de Psicologia • Ana Lima (CRP 04/60205)</p>
+              <h2 className="text-lg font-bold leading-tight text-[#F7F5F0]">
+                Acesso ao consultório
+              </h2>
+              <p className="text-xs text-[#F7F5F0]/80">
+                Consultório de Psicologia • Ana Lima (CRP 04/60205)
+              </p>
             </div>
           </div>
 
           <p className="text-xs text-[#F7F5F0]/90 leading-relaxed mt-2">
-            Acesse seus pacientes, agendamentos e prontuários simultaneamente no computador e no celular com criptografia de ponta a ponta.
+            Acesse seus pacientes, agendamentos e prontuários simultaneamente no
+            computador e no celular com acesso restrito à sua conta.
           </p>
         </div>
 
-        {/* Abas Entrar / Criar Conta */}
-        {mode !== 'forgot' && (
-          <div className="grid grid-cols-2 border-b border-slate-200 bg-slate-50 text-xs font-semibold">
-            <button
-              type="button"
-              onClick={() => { setMode('login'); setError(null); }}
-              className={`py-3 text-center transition-all ${
-                mode === 'login'
-                  ? 'bg-white text-brand-700 border-b-2 border-brand-600 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Entrar na Minha Conta
-            </button>
-            <button
-              type="button"
-              onClick={() => { setMode('register'); setError(null); }}
-              className={`py-3 text-center transition-all ${
-                mode === 'register'
-                  ? 'bg-white text-brand-700 border-b-2 border-brand-600 shadow-xs'
-                  : 'text-slate-500 hover:text-slate-800'
-              }`}
-            >
-              Criar Acesso Nuvem
-            </button>
-          </div>
-        )}
+        {/* Cabeçalho de Acesso Exclusivo */}
+        <div className="px-6 py-2.5 bg-slate-50 border-b border-slate-200 text-xs font-semibold text-slate-700 flex items-center justify-between">
+          <span>
+            {mode === "login"
+              ? "Acesso Restrito da Psicóloga Titular"
+              : "Recuperação de Senha"}
+          </span>
+          <span className="text-[10px] text-slate-400 font-normal">
+            Autocadastro desativado
+          </span>
+        </div>
 
         {/* Formulário */}
         <form onSubmit={handleSubmit} className="p-6 space-y-4">
@@ -143,25 +149,6 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
             </div>
           )}
 
-          {mode === 'register' && (
-            <div>
-              <label className="block text-xs font-semibold text-slate-700 mb-1">
-                Nome Profissional
-              </label>
-              <div className="relative">
-                <UserIcon className="w-4 h-4 text-slate-400 absolute left-3 top-3" />
-                <input
-                  type="text"
-                  required
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  placeholder="Psicóloga Ana Lima"
-                  className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
-                />
-              </div>
-            </div>
-          )}
-
           <div>
             <label className="block text-xs font-semibold text-slate-700 mb-1">
               E-mail da Psicóloga
@@ -173,20 +160,25 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 required
                 value={email}
                 onChange={(e) => setEmail(e.target.value)}
-                placeholder="contato.anaplima@gmail.com"
+                placeholder="Seu e-mail de acesso"
                 className="w-full pl-9 pr-3 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
               />
             </div>
           </div>
 
-          {mode !== 'forgot' && (
+          {mode !== "forgot" && (
             <div>
               <div className="flex items-center justify-between mb-1">
-                <label className="text-xs font-semibold text-slate-700">Senha de Acesso</label>
-                {mode === 'login' && (
+                <label className="text-xs font-semibold text-slate-700">
+                  Senha de Acesso
+                </label>
+                {mode === "login" && (
                   <button
                     type="button"
-                    onClick={() => { setMode('forgot'); setError(null); }}
+                    onClick={() => {
+                      setMode("forgot");
+                      setError(null);
+                    }}
                     className="text-[11px] text-brand-600 hover:text-brand-700 font-medium"
                   >
                     Esqueceu a senha?
@@ -217,25 +209,23 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 <span className="w-3.5 h-3.5 border-2 border-white/30 border-t-white rounded-full animate-spin" />
                 Processando...
               </span>
-            ) : mode === 'login' ? (
+            ) : mode === "login" ? (
               <>
                 <span>Entrar e Sincronizar</span>
                 <ArrowRight className="w-3.5 h-3.5" />
-              </>
-            ) : mode === 'register' ? (
-              <>
-                <Sparkles className="w-3.5 h-3.5" />
-                <span>Criar Conta & Ativar Nuvem</span>
               </>
             ) : (
               <span>Enviar Link de Recuperação</span>
             )}
           </button>
 
-          {mode === 'forgot' && (
+          {mode === "forgot" && (
             <button
               type="button"
-              onClick={() => { setMode('login'); setError(null); }}
+              onClick={() => {
+                setMode("login");
+                setError(null);
+              }}
               className="w-full text-center text-xs text-slate-500 hover:text-slate-800 font-medium mt-2"
             >
               ← Voltar para o Login
@@ -248,7 +238,9 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
               <div className="w-full border-t border-slate-200" />
             </div>
             <div className="relative flex justify-center text-[10px] uppercase font-bold tracking-wider">
-              <span className="bg-white px-2 text-slate-400">Ou use sua conta Google</span>
+              <span className="bg-white px-2 text-slate-400">
+                Ou use sua conta Google
+              </span>
             </div>
           </div>
 
@@ -277,13 +269,13 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
                 d="M12 4.75c1.77 0 3.35.61 4.6 1.8l3.42-3.42C17.95 1.19 15.24 0 12 0 7.34 0 3.26 2.64 1.25 6.58l4.03 3.15c.95-2.83 3.6-4.98 6.72-4.98z"
               />
             </svg>
-            <span>Conectar com Google em 1 Toque</span>
+            <span>Conectar Google (Agenda, Meet & Nuvem)</span>
           </button>
 
           {/* Rodapé de Segurança */}
           <div className="pt-2 text-center text-[10px] text-slate-400 flex items-center justify-center gap-1.5">
             <ShieldCheck className="w-3.5 h-3.5 text-emerald-600" />
-            <span>Dados clínicos criptografados em conformidade com CFP e LGPD</span>
+            <span>Acesso autenticado e cofre local protegido por senha.</span>
           </div>
         </form>
       </div>
@@ -293,7 +285,12 @@ export const AuthModal: React.FC<AuthModalProps> = ({ isOpen, onClose, onSuccess
 
 // Ícone amigável de nuvem
 const CloudSyncIcon: React.FC<{ className?: string }> = ({ className }) => (
-  <svg className={className} fill="none" viewBox="0 0 24 24" stroke="currentColor">
+  <svg
+    className={className}
+    fill="none"
+    viewBox="0 0 24 24"
+    stroke="currentColor"
+  >
     <path
       strokeLinecap="round"
       strokeLinejoin="round"

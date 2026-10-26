@@ -1,56 +1,73 @@
-import React, { useState } from 'react';
-import { AppProvider, useApp } from './context/AppContext';
-import { Sidebar } from './components/layout/Sidebar';
-import { Header } from './components/layout/Header';
-import { BottomNav } from './components/layout/BottomNav';
-import { PwaInstallPrompt } from './components/common/PwaInstallPrompt';
-import { LockScreen } from './components/layout/LockScreen';
-import { DashboardView } from './components/dashboard/DashboardView';
-import { ScheduleView } from './components/schedule/ScheduleView';
-import { PatientsView } from './components/patients/PatientsView';
-import { PatientDetailView } from './components/patients/PatientDetailView';
-import { FinancialView } from './components/financial/FinancialView';
-import { SettingsView } from './components/settings/SettingsView';
-import { SessionModal } from './components/schedule/SessionModal';
-import { PatientModal } from './components/patients/PatientModal';
-import { PatientIntakeView } from './components/intake/PatientIntakeView';
-import { EventCalendarView } from './components/calendar/EventCalendarView';
-import { AuthModal } from './components/auth/AuthModal';
-import { IntakeToastAlert } from './components/notifications/IntakeToastAlert';
-import { IntakeReviewModal } from './components/intake/IntakeReviewModal';
-import { SystemUpdateAlert } from './components/notifications/SystemUpdateAlert';
+import { SecurityNotice } from "./components/common/SecurityNotice";
+import { AccessGate } from "./components/auth/AccessGate";
+import React, { useState } from "react";
+import { AppProvider, useApp } from "./context/AppContext";
+import { Sidebar } from "./components/layout/Sidebar";
+import { Header } from "./components/layout/Header";
+import { BottomNav } from "./components/layout/BottomNav";
+import { PwaInstallPrompt } from "./components/common/PwaInstallPrompt";
+import { LockScreen } from "./components/layout/LockScreen";
+import { DashboardView } from "./components/dashboard/DashboardView";
+import { ScheduleView } from "./components/schedule/ScheduleView";
+import { PatientsView } from "./components/patients/PatientsView";
+import { PatientDetailView } from "./components/patients/PatientDetailView";
+import { FinancialView } from "./components/financial/FinancialView";
+import { SettingsView } from "./components/settings/SettingsView";
+import { BlogAdminView } from "./components/blog/BlogAdminView";
+import { SessionModal } from "./components/schedule/SessionModal";
+import { PatientModal } from "./components/patients/PatientModal";
+import { PatientIntakeView } from "./components/intake/PatientIntakeView";
+import { EventCalendarView } from "./components/calendar/EventCalendarView";
+import { AuthModal } from "./components/auth/AuthModal";
+import { IntakeToastAlert } from "./components/notifications/IntakeToastAlert";
+import { IntakeReviewModal } from "./components/intake/IntakeReviewModal";
+import { SystemUpdateAlert } from "./components/notifications/SystemUpdateAlert";
 
 const checkIsIntakeRoute = (): boolean => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   const path = window.location.pathname.toLowerCase();
   const search = window.location.search.toLowerCase();
   const hash = window.location.hash.toLowerCase();
   return (
-    path.startsWith('/cadastro') ||
-    path.startsWith('/pre-cadastro') ||
-    search.includes('cadastro') ||
-    hash.includes('cadastro')
+    path.startsWith("/cadastro") ||
+    path.startsWith("/pre-cadastro") ||
+    search.includes("cadastro") ||
+    hash.includes("cadastro")
   );
 };
 
 const checkIsEventRoute = (): boolean => {
-  if (typeof window === 'undefined') return false;
+  if (typeof window === "undefined") return false;
   const path = window.location.pathname.toLowerCase();
   const search = window.location.search.toLowerCase();
   const hash = window.location.hash.toLowerCase();
   return (
-    path.startsWith('/evento') ||
-    path.startsWith('/agendar') ||
-    search.includes('evento') ||
-    hash.includes('evento')
+    path.startsWith("/evento") ||
+    path.startsWith("/agendar") ||
+    search.includes("evento") ||
+    hash.includes("evento")
+  );
+};
+
+const checkIsBlogAdminRoute = (): boolean => {
+  if (typeof window === "undefined") return false;
+  const path = window.location.pathname.toLowerCase();
+  const search = window.location.search.toLowerCase();
+  const hash = window.location.hash.toLowerCase();
+  return (
+    path.startsWith("/blog-admin") ||
+    path.startsWith("/admin-blog") ||
+    search.includes("blog-admin") ||
+    hash.includes("blog-admin") ||
+    search.includes("view=blog")
   );
 };
 
 const MainLayout: React.FC = () => {
-  const { 
-    currentView, 
-    isLocked, 
-    isAuthModalOpen, 
+  const {
+    currentView,
+    isLocked,
+    isAuthModalOpen,
     closeAuthModal,
     reviewingPatient,
     openReviewPatient,
@@ -60,7 +77,7 @@ const MainLayout: React.FC = () => {
     isNewSessionModalOpen,
     defaultSessionPatientId,
     openNewSessionModal,
-    closeNewSessionModal
+    closeNewSessionModal,
   } = useApp();
 
   const [isNewPatientModalOpen, setIsNewPatientModalOpen] = useState(false);
@@ -71,24 +88,67 @@ const MainLayout: React.FC = () => {
       <SystemUpdateAlert />
 
       {/* Alerta Toast Flutuante de Novo Pré-Cadastro */}
-      <IntakeToastAlert 
+      <IntakeToastAlert
         patient={intakeToastPatient}
         onReview={(patient) => openReviewPatient(patient)}
         onDismiss={dismissIntakeToast}
       />
 
       {/* Modal de Inspeção Completa do Pré-Cadastro */}
-      <IntakeReviewModal 
+      <IntakeReviewModal
         isOpen={!!reviewingPatient}
         patient={reviewingPatient}
         onClose={closeReviewPatient}
         onScheduleSession={(patientId) => openNewSessionModal(patientId)}
         onOpenWhatsApp={(patient) => {
-          const firstName = patient.name.split(' ')[0];
-          const cleanPhone = patient.phone.replace(/\D/g, '');
-          const fullPhone = cleanPhone.startsWith('55') ? cleanPhone : `55${cleanPhone}`;
-          const text = `Olá, ${firstName}! Aqui é a psicóloga Ana Lima (CRP 04/60205).\n\nRecebi sua ficha de pré-cadastro em meu consultório em Poços de Caldas, MG com total sigilo. Já estou organizando os horários da semana!\n\nVamos agendar seu primeiro atendimento? Quais dias e turnos ficam melhores para você?`;
-          window.open(`https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`, '_blank');
+          const isMinor = Boolean(
+            patient.isMinor ||
+            patient.guardianCpf ||
+            patient.guardianName ||
+            (typeof patient.legalGuardian === "object" &&
+              patient.legalGuardian?.name),
+          );
+          const guardianName =
+            patient.guardianName ||
+            (typeof patient.legalGuardian === "object"
+              ? patient.legalGuardian?.name
+              : "") ||
+            patient.emergencyContact?.name;
+          const guardianPhone =
+            patient.guardianPhone ||
+            (typeof patient.legalGuardian === "object"
+              ? patient.legalGuardian?.phone
+              : "") ||
+            patient.emergencyContact?.phone ||
+            patient.phone;
+
+          if (isMinor && guardianName) {
+            const cleanPhone = (guardianPhone || patient.phone).replace(
+              /\D/g,
+              "",
+            );
+            const fullPhone = cleanPhone.startsWith("55")
+              ? cleanPhone
+              : `55${cleanPhone}`;
+            const guardianFirstName = guardianName.split(" ")[0];
+            const childFirstName = patient.name.split(" ")[0];
+            const text = `Olá, ${guardianFirstName}! Aqui é a psicóloga Ana Lima (CRP 04/60205).\n\nRecebi a ficha de pré-cadastro do(a) ${childFirstName} em meu consultório em Poços de Caldas, MG com total sigilo. Já estou organizando os horários da semana!\n\nVamos agendar o primeiro atendimento? Quais dias e turnos ficam melhores para vocês?`;
+            window.open(
+              `https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`,
+              "_blank",
+            );
+          } else {
+            const firstName = patient.name.split(" ")[0];
+            const cleanPhone = patient.phone.replace(/\D/g, "");
+            const fullPhone = cleanPhone.startsWith("55")
+              ? cleanPhone
+              : `55${cleanPhone}`;
+            const text = `Olá, ${firstName}! Aqui é a psicóloga Ana Lima (CRP 04/60205).\n\nRecebi sua ficha de pré-cadastro em meu consultório em Poços de Caldas, MG com total sigilo. Já estou organizando os horários da semana!\n\nVamos agendar seu primeiro atendimento? Quais dias e turnos ficam melhores para você?`;
+            window.open(
+              `https://wa.me/${fullPhone}?text=${encodeURIComponent(text)}`,
+              "_blank",
+            );
+          }
         }}
       />
 
@@ -101,7 +161,7 @@ const MainLayout: React.FC = () => {
       {/* Conteúdo Principal */}
       <div className="flex-1 flex flex-col min-w-0 h-screen overflow-hidden">
         {/* Top Header com suporte a Safe Area do iPhone/Android */}
-        <Header 
+        <Header
           onNewSessionClick={() => openNewSessionModal()}
           onNewPatientClick={() => setIsNewPatientModalOpen(true)}
         />
@@ -110,36 +170,31 @@ const MainLayout: React.FC = () => {
         <PwaInstallPrompt />
 
         <main className="flex-1 overflow-y-auto bg-slate-50/70 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-12">
-          {currentView === 'dashboard' && (
-            <DashboardView 
+          <SecurityNotice />
+          {currentView === "dashboard" && (
+            <DashboardView
               onNewSessionClick={() => openNewSessionModal()}
               onNewPatientClick={() => setIsNewPatientModalOpen(true)}
             />
           )}
 
-          {currentView === 'schedule' && (
-            <ScheduleView 
-              onNewSessionClick={() => openNewSessionModal()}
-            />
+          {currentView === "schedule" && (
+            <ScheduleView onNewSessionClick={() => openNewSessionModal()} />
           )}
 
-          {currentView === 'patients' && (
-            <PatientsView 
+          {currentView === "patients" && (
+            <PatientsView
               onNewPatientClick={() => setIsNewPatientModalOpen(true)}
             />
           )}
 
-          {currentView === 'patient-detail' && (
-            <PatientDetailView />
-          )}
+          {currentView === "patient-detail" && <PatientDetailView />}
 
-          {currentView === 'financial' && (
-            <FinancialView />
-          )}
+          {currentView === "financial" && <FinancialView />}
 
-          {currentView === 'settings' && (
-            <SettingsView />
-          )}
+          {currentView === "blog" && <BlogAdminView />}
+
+          {currentView === "settings" && <SettingsView />}
         </main>
 
         {/* Barra de Navegação Inferior (Mobile / Android) */}
@@ -148,7 +203,7 @@ const MainLayout: React.FC = () => {
 
       {/* Modais Globais de Ação Rápida */}
       {isNewSessionModalOpen && (
-        <SessionModal 
+        <SessionModal
           isOpen={isNewSessionModalOpen}
           onClose={closeNewSessionModal}
           defaultPatientId={defaultSessionPatientId || undefined}
@@ -156,17 +211,14 @@ const MainLayout: React.FC = () => {
       )}
 
       {isNewPatientModalOpen && (
-        <PatientModal 
+        <PatientModal
           isOpen={isNewPatientModalOpen}
           onClose={() => setIsNewPatientModalOpen(false)}
         />
       )}
 
       {isAuthModalOpen && (
-        <AuthModal
-          isOpen={isAuthModalOpen}
-          onClose={closeAuthModal}
-        />
+        <AuthModal isOpen={isAuthModalOpen} onClose={closeAuthModal} />
       )}
     </div>
   );
@@ -175,14 +227,16 @@ const MainLayout: React.FC = () => {
 export function App() {
   const [isIntake, setIsIntake] = useState(checkIsIntakeRoute);
   const [isEvent, setIsEvent] = useState(checkIsEventRoute);
+  const [isBlogAdmin, setIsBlogAdmin] = useState(checkIsBlogAdminRoute);
 
   React.useEffect(() => {
     const handlePopState = () => {
       setIsIntake(checkIsIntakeRoute());
       setIsEvent(checkIsEventRoute());
+      setIsBlogAdmin(checkIsBlogAdminRoute());
     };
-    window.addEventListener('popstate', handlePopState);
-    return () => window.removeEventListener('popstate', handlePopState);
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
   }, []);
 
   if (isIntake) {
@@ -193,10 +247,20 @@ export function App() {
     return <EventCalendarView />;
   }
 
+  if (isBlogAdmin) {
+    return (
+      <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-800">
+        <BlogAdminView />
+      </div>
+    );
+  }
+
   return (
-    <AppProvider>
-      <MainLayout />
-    </AppProvider>
+    <AccessGate>
+      <AppProvider>
+        <MainLayout />
+      </AppProvider>
+    </AccessGate>
   );
 }
 

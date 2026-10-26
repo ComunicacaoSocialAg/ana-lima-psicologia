@@ -5,3 +5,8 @@ dist/
 .DS_Store
 .firebase/
 *.log
+backups/
+*.enc.json
+!.env.example
+!functions/.env.example
+*.tsbuildinfo

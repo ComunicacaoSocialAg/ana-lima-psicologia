@@ -1,7 +1,21 @@
 import React, { useState, useEffect } from 'react';
-import { X, Save, History, FileText, Lock, AlertCircle, ShieldCheck } from 'lucide-react';
-import { ClinicalRecord, Modality } from '../../types';
+import {
+  X,
+  Save,
+  History,
+  FileText,
+  Lock,
+  AlertCircle,
+  ShieldCheck,
+  Calendar,
+  DollarSign,
+  CheckCircle2,
+  Clock,
+  Sparkles
+} from 'lucide-react';
+import { ClinicalRecord, Modality, Payment, PaymentStatus } from '../../types';
 import { useApp } from '../../context/AppContext';
+import { formatDateBR } from '../../services/pdfService';
 
 interface SessionRecordModalProps {
   isOpen: boolean;
@@ -20,12 +34,30 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
   patientId,
   patientName,
   sessionId,
-  sessionDate = new Date().toISOString().slice(0, 10),
+  sessionDate,
   modality = 'presencial',
   existingRecord,
 }) => {
-  const { saveClinicalRecord } = useApp();
+  const {
+    saveClinicalRecord,
+    savePayment,
+    patients,
+    payments,
+    sessions,
+    saveSession
+  } = useApp();
 
+  const patient = patients.find(p => p.id === patientId);
+
+  // Data e Modalidade da Sessão (editável para permitir lançamentos retroativos)
+  const [recordDate, setRecordDate] = useState<string>(
+    existingRecord?.sessionDate || sessionDate || new Date().toISOString().slice(0, 10)
+  );
+  const [recordModality, setRecordModality] = useState<Modality>(
+    existingRecord?.modality || modality || 'presencial'
+  );
+
+  // Campos Clínicos
   const [themes, setThemes] = useState('');
   const [interventions, setInterventions] = useState('');
   const [emotionalState, setEmotionalState] = useState('');
@@ -35,8 +67,28 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
   const [editReason, setEditReason] = useState('');
   const [showHistory, setShowHistory] = useState(false);
 
+  // Integração com o Financeiro
+  const existingPayment = payments.find(
+    p =>
+      (sessionId && p.sessionId === sessionId) ||
+      (existingRecord && (p.sessionId === existingRecord.sessionId || p.id === `pay-rec-${existingRecord.id}`))
+  );
+
+  const [syncWithFinancial, setSyncWithFinancial] = useState<boolean>(!existingRecord && !existingPayment);
+  const [financialAmount, setFinancialAmount] = useState<number>(
+    existingPayment?.amount || patient?.agreedPrice || 200
+  );
+  const [financialStatus, setFinancialStatus] = useState<PaymentStatus>(
+    existingPayment?.status || 'pending'
+  );
+  const [financialMethod, setFinancialMethod] = useState<'pix' | 'cash' | 'transfer' | 'card'>(
+    (existingPayment?.paymentMethod as any) || 'pix'
+  );
+
   useEffect(() => {
     if (existingRecord) {
+      setRecordDate(existingRecord.sessionDate);
+      setRecordModality(existingRecord.modality);
       setThemes(existingRecord.themes || '');
       setInterventions(existingRecord.interventions || '');
       setEmotionalState(existingRecord.emotionalState || '');
@@ -44,7 +96,21 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
       setHomework(existingRecord.homework || '');
       setPrivateNotes(existingRecord.privateNotes || '');
       setEditReason('');
+
+      if (existingPayment) {
+        setSyncWithFinancial(true);
+        setFinancialAmount(existingPayment.amount);
+        setFinancialStatus(existingPayment.status);
+        if (existingPayment.paymentMethod) {
+          setFinancialMethod(existingPayment.paymentMethod as any);
+        }
+      } else {
+        setSyncWithFinancial(false);
+      }
     } else {
+      const initialDate = sessionDate || new Date().toISOString().slice(0, 10);
+      setRecordDate(initialDate);
+      setRecordModality(modality || patient?.preferredModality || 'presencial');
       setThemes('');
       setInterventions('');
       setEmotionalState('');
@@ -52,8 +118,20 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
       setHomework('');
       setPrivateNotes('');
       setEditReason('');
+
+      // Para novas evoluções, se não houver pagamento pré-existente, ativa o financeiro por padrão
+      const foundPay = payments.find(p => sessionId && p.sessionId === sessionId);
+      if (foundPay) {
+        setSyncWithFinancial(true);
+        setFinancialAmount(foundPay.amount);
+        setFinancialStatus(foundPay.status);
+      } else {
+        setSyncWithFinancial(true);
+        setFinancialAmount(patient?.agreedPrice || 200);
+        setFinancialStatus('pending');
+      }
     }
-  }, [existingRecord, isOpen]);
+  }, [existingRecord, isOpen, sessionDate, modality, patient, sessionId, payments, existingPayment]);
 
   if (!isOpen) return null;
 
@@ -66,18 +144,25 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
       return;
     }
 
+    if (!recordDate) {
+      alert('Por favor, informe a data em que a sessão ocorreu.');
+      return;
+    }
+
     if (isEditing && !editReason.trim()) {
       alert('Para conformidade ética e auditoria do prontuário, informe o motivo da edição deste registro.');
       return;
     }
 
+    const effectiveSessionId = sessionId || existingRecord?.sessionId || `ses-adhoc-${Date.now()}`;
+
     const recordPayload: ClinicalRecord = {
       id: existingRecord?.id || `rec-${Date.now()}`,
       patientId,
       patientName,
-      sessionId: sessionId || existingRecord?.sessionId || `ses-adhoc-${Date.now()}`,
-      sessionDate,
-      modality,
+      sessionId: effectiveSessionId,
+      sessionDate: recordDate,
+      modality: recordModality,
       themes,
       interventions,
       emotionalState,
@@ -90,7 +175,50 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
       updatedAt: new Date().toISOString(),
     };
 
+    // 1. Salva o Prontuário Clínico (com versionamento auditado)
     saveClinicalRecord(recordPayload, editReason);
+
+    // 2. Se a integração financeira estiver ativada, contabiliza no financeiro
+    if (syncWithFinancial) {
+      const payId = existingPayment?.id || `pay-rec-${recordPayload.id}`;
+      const paymentPayload: Payment = {
+        id: payId,
+        patientId,
+        patientName,
+        sessionId: effectiveSessionId,
+        sessionDate: recordDate,
+        amount: Number(financialAmount) || 200,
+        dueDate: recordDate,
+        paidDate: financialStatus === 'paid' ? (existingPayment?.paidDate || recordDate) : undefined,
+        status: financialStatus,
+        paymentMethod: financialMethod,
+        receiptNumber:
+          financialStatus === 'paid'
+            ? existingPayment?.receiptNumber || `REC-${Date.now().toString().slice(-6)}`
+            : undefined,
+        notes: `Honorários referentes à sessão do dia ${formatDateBR(recordDate)}.`,
+        createdAt: existingPayment?.createdAt || new Date().toISOString(),
+      };
+
+      savePayment(paymentPayload);
+
+      // Se a sessão estiver no calendário, sincroniza também o status e o flag de prontuário
+      if (sessionId) {
+        const linkedSession = sessions.find(s => s.id === sessionId);
+        if (linkedSession) {
+          saveSession({
+            ...linkedSession,
+            date: recordDate, // sincroniza caso a data tenha sido ajustada retroativamente
+            modality: recordModality,
+            price: Number(financialAmount) || linkedSession.price,
+            paymentStatus: financialStatus,
+            hasRecord: true,
+            recordId: recordPayload.id,
+          });
+        }
+      }
+    }
+
     onClose();
   };
 
@@ -100,7 +228,7 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
         {/* Header */}
         <div className="bg-slate-900 text-white px-6 py-4 flex items-center justify-between shrink-0">
           <div className="flex items-center gap-3">
-            <div className="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center">
+            <div className="w-9 h-9 bg-brand-600 rounded-xl flex items-center justify-center shrink-0">
               <FileText className="w-5 h-5 text-white" />
             </div>
             <div>
@@ -115,7 +243,10 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
                 )}
               </div>
               <p className="text-xs text-slate-300 mt-0.5">
-                Paciente: <span className="font-medium text-white">{patientName}</span> | Sessão: {sessionDate} ({modality.toUpperCase()})
+                Paciente: <span className="font-medium text-white">{patientName}</span>
+                {recordDate && (
+                  <> • Sessão de {formatDateBR(recordDate)} ({recordModality.toUpperCase()})</>
+                )}
               </p>
             </div>
           </div>
@@ -164,7 +295,54 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
           )}
 
           <form id="record-form" onSubmit={handleSubmit} className="space-y-4">
-            {/* Temas e Técnicas */}
+            {/* Bloco 1: Data e Modalidade do Atendimento (Editável para registros posteriores) */}
+            <div className="p-4 bg-emerald-50/60 border border-emerald-200/90 rounded-2xl space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2 text-xs font-bold text-emerald-950 uppercase tracking-wider">
+                  <Calendar className="w-4 h-4 text-emerald-700" />
+                  <span>Data e Modalidade do Atendimento</span>
+                </div>
+                <span className="text-[11px] text-emerald-800 font-medium">
+                  {recordDate ? `Atendimento em: ${formatDateBR(recordDate)}` : 'Selecione a data'}
+                </span>
+              </div>
+
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label htmlFor="record-date-input" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Data em que a Sessão Ocorreu <span className="text-rose-500">*</span>
+                  </label>
+                  <input
+                    id="record-date-input"
+                    type="date"
+                    required
+                    value={recordDate}
+                    onChange={(e) => setRecordDate(e.target.value)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  />
+                  <p className="text-[10px] text-slate-500 mt-1">
+                    Permite registrar sessões ocorridas em dias anteriores.
+                  </p>
+                </div>
+
+                <div>
+                  <label htmlFor="record-modality-select" className="block text-xs font-semibold text-slate-700 mb-1">
+                    Modalidade
+                  </label>
+                  <select
+                    id="record-modality-select"
+                    value={recordModality}
+                    onChange={(e) => setRecordModality(e.target.value as Modality)}
+                    className="w-full px-3 py-2 bg-white border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                  >
+                    <option value="presencial">Presencial (Consultório Poços de Caldas)</option>
+                    <option value="online">Online (Videoconferência)</option>
+                  </select>
+                </div>
+              </div>
+            </div>
+
+            {/* Bloco 2: Temas e Técnicas */}
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               <div>
                 <label className="block text-xs font-semibold text-slate-700 mb-1">
@@ -193,7 +371,7 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
               </div>
             </div>
 
-            {/* Estado Emocional */}
+            {/* Bloco 3: Estado Emocional */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Estado Emocional, Humor e Comportamento Observado
@@ -207,39 +385,114 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
               />
             </div>
 
-            {/* Evolução Clínica Formal */}
+            {/* Bloco 4: Evolução Clínica Formal */}
             <div>
               <div className="flex items-center justify-between mb-1">
                 <label className="block text-xs font-semibold text-slate-700">
                   Evolução Clínica da Sessão <span className="text-rose-500">*</span>
                 </label>
-                <span className="text-[11px] text-slate-400">Prontuário Documental Obrigatório</span>
+                <span className="text-[11px] text-slate-400">Prontuário Documental Obrigatório (CFP)</span>
               </div>
               <textarea
                 rows={5}
                 required
-                placeholder="Registre a síntese clínica do atendimento, avanços terapêuticos e percepções do processo..."
+                placeholder="Registre a síntese clínica do atendimento, intervenções realizadas e avanços terapêuticos..."
                 value={evolution}
                 onChange={(e) => setEvolution(e.target.value)}
                 className="w-full px-3.5 py-2.5 bg-slate-50 border border-slate-300 rounded-xl text-sm text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none transition-all leading-relaxed"
               />
             </div>
 
-            {/* Tarefas e Combinados */}
+            {/* Bloco 5: Tarefas e Combinados */}
             <div>
               <label className="block text-xs font-semibold text-slate-700 mb-1">
                 Tarefas e Combinados para a Próxima Sessão (Homework)
               </label>
               <input
                 type="text"
-                placeholder="Ex: Registro diário de pensamentos automáticos; leitura do material de apoio..."
+                placeholder="Ex: Registro diário de pensamentos disfuncionais; leitura do capítulo recomendado..."
                 value={homework}
                 onChange={(e) => setHomework(e.target.value)}
                 className="w-full px-3.5 py-2 bg-slate-50 border border-slate-300 rounded-lg text-xs text-slate-800 focus:bg-white focus:ring-2 focus:ring-brand-500 focus:outline-none"
               />
             </div>
 
-            {/* Anotações Pessoais de Supervisão (Segregadas) */}
+            {/* Bloco 6: Vínculo Automático com o Financeiro */}
+            <div className="p-4 bg-slate-50 border border-slate-200 rounded-2xl space-y-3">
+              <label className="flex items-center justify-between cursor-pointer select-none">
+                <div className="flex items-center gap-2">
+                  <input
+                    type="checkbox"
+                    checked={syncWithFinancial}
+                    onChange={(e) => setSyncWithFinancial(e.target.checked)}
+                    className="w-4 h-4 rounded text-brand-600 focus:ring-brand-500 border-slate-300"
+                  />
+                  <div>
+                    <span className="text-xs font-bold text-slate-800 flex items-center gap-1.5">
+                      <DollarSign className="w-3.5 h-3.5 text-emerald-600" />
+                      Lançar registro no Financeiro automaticamente
+                    </span>
+                    <p className="text-[11px] text-slate-500">
+                      Contabiliza os honorários no Dashboard e na aba Financeiro da clínica
+                    </p>
+                  </div>
+                </div>
+                <span className="text-[10px] font-bold px-2 py-0.5 rounded-full bg-emerald-100 text-emerald-800">
+                  {syncWithFinancial ? 'Ativo' : 'Desativado'}
+                </span>
+              </label>
+
+              {syncWithFinancial && (
+                <div className="pt-2 border-t border-slate-200/80 grid grid-cols-1 sm:grid-cols-3 gap-3">
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Valor da Sessão (R$)
+                    </label>
+                    <input
+                      type="number"
+                      step="0.01"
+                      required={syncWithFinancial}
+                      value={financialAmount}
+                      onChange={(e) => setFinancialAmount(Number(e.target.value))}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-bold text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    />
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Status do Pagamento
+                    </label>
+                    <select
+                      value={financialStatus}
+                      onChange={(e) => setFinancialStatus(e.target.value as PaymentStatus)}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    >
+                      <option value="pending">⏳ Pendente (Aguardando)</option>
+                      <option value="paid">✅ Pago / Recebido</option>
+                      <option value="waived">🤝 Isento</option>
+                    </select>
+                  </div>
+
+                  <div>
+                    <label className="block text-xs font-semibold text-slate-700 mb-1">
+                      Forma de Pagamento
+                    </label>
+                    <select
+                      value={financialMethod}
+                      onChange={(e) => setFinancialMethod(e.target.value as any)}
+                      className="w-full px-3 py-2 bg-white border border-slate-300 rounded-lg text-xs font-medium text-slate-800 focus:ring-2 focus:ring-brand-500 focus:outline-none"
+                    >
+                      <option value="pix">PIX</option>
+                      <option value="cash">Dinheiro</option>
+                      <option value="transfer">Transferência Bancária</option>
+                      <option value="card">Cartão</option>
+                    </select>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            {/* Bloco 7: Anotações Pessoais de Supervisão (Segregadas) */}
             <div className="p-4 bg-amber-50/70 border border-amber-200/80 rounded-xl space-y-2">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-1.5 text-xs font-bold text-amber-900">
@@ -251,7 +504,7 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
                 </span>
               </div>
               <p className="text-[11px] text-amber-800">
-                Espaço exclusivo para hipóteses preliminares, impressões contratransferenciais e temas para supervisão clínica.
+                Espaço exclusivo para hipóteses preliminares, reflexões contratransferenciais e temas para supervisão.
               </p>
               <textarea
                 rows={3}
