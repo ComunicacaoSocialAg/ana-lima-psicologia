@@ -1,6 +1,6 @@
 {
   "version": "3.3.0",
-  "buildId": "v3.3.0-financeiro-inteligente",
-  "releasedAt": "26/10/2026, 18:10",
-  "notes": "Novo Módulo Financeiro no ar! Agora você tem controle por competência mensal e anual, gráficos analíticos de evolução, comparativo percentual mês a mês e fechamento contábil para o Carnê-Leão com exportação em CSV e demonstrativo em PDF."
+  "buildId": "v3.3.0-sistema-clinico-e-blog",
+  "releasedAt": "26/10/2026, 18:15",
+  "notes": "Atualização v3.3.0: Novo Caderno Clínico & Blog no ar (gestão e publicação de artigos no seu site analimapsicologia.com.br) e novo Painel Financeiro Inteligente com controle por competência, fechamento Carnê-Leão e relatórios analíticos."
 }
