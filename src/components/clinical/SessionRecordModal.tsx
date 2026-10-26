@@ -16,6 +16,7 @@ import {
 import { ClinicalRecord, Modality, Payment, PaymentStatus } from '../../types';
 import { useApp } from '../../context/AppContext';
 import { formatDateBR } from '../../services/pdfService';
+import { storageService } from '../../services/storageService';
 
 interface SessionRecordModalProps {
   isOpen: boolean;
@@ -66,6 +67,12 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
   const [privateNotes, setPrivateNotes] = useState('');
   const [editReason, setEditReason] = useState('');
   const [showHistory, setShowHistory] = useState(false);
+
+  // Auto-save contínuo de conteúdo e recuperação de rascunhos
+  const draftKey = `ana_lima_draft_record_${patientId}_${existingRecord?.id || sessionId || 'new'}`;
+  const [draftStatus, setDraftStatus] = useState<'idle' | 'saving' | 'saved'>('idle');
+  const [lastDraftSavedAt, setLastDraftSavedAt] = useState<string | null>(null);
+  const [hasRecoveredDraft, setHasRecoveredDraft] = useState(false);
 
   // Integração com o Financeiro
   const existingPayment = payments.find(
@@ -130,8 +137,119 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
         setFinancialAmount(patient?.agreedPrice || 200);
         setFinancialStatus('pending');
       }
+
+      // Restaura rascunho anterior de nova evolução se existir
+      try {
+        const rawDraft = localStorage.getItem(draftKey);
+        if (rawDraft) {
+          const draft = JSON.parse(rawDraft);
+          if (
+            draft &&
+            (draft.evolution?.trim() ||
+              draft.themes?.trim() ||
+              draft.interventions?.trim() ||
+              draft.emotionalState?.trim() ||
+              draft.homework?.trim() ||
+              draft.privateNotes?.trim())
+          ) {
+            if (draft.recordDate) setRecordDate(draft.recordDate);
+            if (draft.recordModality) setRecordModality(draft.recordModality);
+            if (draft.themes) setThemes(draft.themes);
+            if (draft.interventions) setInterventions(draft.interventions);
+            if (draft.emotionalState) setEmotionalState(draft.emotionalState);
+            if (draft.evolution) setEvolution(draft.evolution);
+            if (draft.homework) setHomework(draft.homework);
+            if (draft.privateNotes) setPrivateNotes(draft.privateNotes);
+            setHasRecoveredDraft(true);
+            setLastDraftSavedAt(draft.savedAtFormatted || null);
+          }
+        }
+      } catch {
+        // Ignora erro de leitura do rascunho
+      }
     }
-  }, [existingRecord, isOpen, sessionDate, modality, patient, sessionId, payments, existingPayment]);
+  }, [existingRecord, isOpen, sessionDate, modality, patient, sessionId, payments, existingPayment, draftKey]);
+
+  // Gravação automática contínua de conteúdo (Debounce de 1 segundo)
+  useEffect(() => {
+    if (!isOpen) return;
+    const hasAnyContent = Boolean(
+      themes.trim() ||
+        interventions.trim() ||
+        emotionalState.trim() ||
+        evolution.trim() ||
+        homework.trim() ||
+        privateNotes.trim()
+    );
+
+    if (!hasAnyContent) return;
+
+    setDraftStatus('saving');
+    const timer = setTimeout(() => {
+      try {
+        const now = new Date();
+        const timeFormatted = now.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' });
+        localStorage.setItem(
+          draftKey,
+          JSON.stringify({
+            recordDate,
+            recordModality,
+            themes,
+            interventions,
+            emotionalState,
+            evolution,
+            homework,
+            privateNotes,
+            savedAt: now.toISOString(),
+            savedAtFormatted: timeFormatted,
+          })
+        );
+        setDraftStatus('saved');
+        setLastDraftSavedAt(timeFormatted);
+      } catch {
+        setDraftStatus('idle');
+      }
+    }, 1000);
+
+    return () => clearTimeout(timer);
+  }, [
+    isOpen,
+    draftKey,
+    themes,
+    interventions,
+    emotionalState,
+    evolution,
+    homework,
+    privateNotes,
+    recordDate,
+    recordModality,
+  ]);
+
+  const handleDiscardDraft = () => {
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      // Ignora erro
+    }
+    setHasRecoveredDraft(false);
+    setDraftStatus('idle');
+    setLastDraftSavedAt(null);
+    if (existingRecord) {
+      setThemes(existingRecord.themes || '');
+      setInterventions(existingRecord.interventions || '');
+      setEmotionalState(existingRecord.emotionalState || '');
+      setEvolution(existingRecord.evolution || '');
+      setHomework(existingRecord.homework || '');
+      setPrivateNotes(existingRecord.privateNotes || '');
+    } else {
+      setThemes('');
+      setInterventions('');
+      setEmotionalState('');
+      setEvolution('');
+      setHomework('');
+      setPrivateNotes('');
+    }
+  };
 
   if (!isOpen) return null;
 
@@ -219,6 +337,18 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
       }
     }
 
+    // Limpa rascunho temporário do navegador
+    try {
+      localStorage.removeItem(draftKey);
+    } catch {
+      // Ignora erro
+    }
+    setHasRecoveredDraft(false);
+    setDraftStatus('idle');
+
+    // Backup e Snapshot de redundância imediato no encerramento da reunião
+    storageService.triggerAutoSnapshot(`Sessão Concluída & Prontuário Gravado: ${patientName} (${recordDate})`);
+
     onClose();
   };
 
@@ -291,6 +421,26 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
                   </div>
                 ))}
               </div>
+            </div>
+          )}
+
+          {/* Alerta de Rascunho Recuperado */}
+          {hasRecoveredDraft && (
+            <div className="bg-amber-50 border border-amber-200 text-amber-900 rounded-xl p-3 flex items-center justify-between text-xs animate-in fade-in">
+              <div className="flex items-center gap-2">
+                <Sparkles className="w-4 h-4 text-amber-600 shrink-0" />
+                <span>
+                  <strong>Rascunho recuperado:</strong> Suas anotações anteriores foram restauradas
+                  {lastDraftSavedAt ? ` (gravadas às ${lastDraftSavedAt})` : ''}.
+                </span>
+              </div>
+              <button
+                type="button"
+                onClick={handleDiscardDraft}
+                className="text-amber-800 hover:text-amber-950 font-semibold underline underline-offset-2 ml-3 shrink-0"
+              >
+                Descartar rascunho
+              </button>
             </div>
           )}
 
@@ -536,10 +686,24 @@ export const SessionRecordModal: React.FC<SessionRecordModalProps> = ({
         </div>
 
         {/* Footer */}
-        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex items-center justify-between shrink-0">
-          <div className="flex items-center gap-1.5 text-xs text-slate-500">
-            <ShieldCheck className="w-4 h-4 text-brand-600" />
-            <span>Guarda digital segura por 5 anos (Resolução CFP 001/2009)</span>
+        <div className="bg-slate-50 px-6 py-4 border-t border-slate-200 flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 shrink-0">
+          <div className="flex flex-col sm:flex-row sm:items-center gap-1.5 text-xs text-slate-500">
+            <div className="flex items-center gap-1.5">
+              <ShieldCheck className="w-4 h-4 text-brand-600 shrink-0" />
+              <span>Guarda digital segura por 5 anos (CFP 001/2009)</span>
+            </div>
+            {draftStatus === 'saving' && (
+              <span className="text-[11px] font-medium text-amber-700 flex items-center gap-1 sm:ml-3">
+                <Clock className="w-3.5 h-3.5 animate-spin text-amber-600" />
+                Gravando conteúdo...
+              </span>
+            )}
+            {draftStatus === 'saved' && lastDraftSavedAt && (
+              <span className="text-[11px] font-medium text-emerald-700 flex items-center gap-1 sm:ml-3">
+                <CheckCircle2 className="w-3.5 h-3.5 text-emerald-600" />
+                Gravado automaticamente às {lastDraftSavedAt}
+              </span>
+            )}
           </div>
 
           <div className="flex items-center gap-2">

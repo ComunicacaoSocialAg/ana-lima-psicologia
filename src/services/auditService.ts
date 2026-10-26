@@ -21,7 +21,9 @@ export type AuditAction =
   | "delete_patient"
   | "view_anamnesis"
   | "auth_login"
-  | "auth_logout";
+  | "auth_logout"
+  | "export_csv"
+  | "export_excel";
 
 export interface AuditLogEntry {
   id: string;

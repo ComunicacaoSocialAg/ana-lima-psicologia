@@ -46,7 +46,7 @@ export interface RedundantSnapshot {
 }
 
 const VAULT_KEY = "ana_lima_redundant_vault_v1";
-const MAX_VAULT_SNAPSHOTS = 3;
+const MAX_VAULT_SNAPSHOTS = 10;
 
 // Gera um checksum simples e determinístico para validação de integridade dos dados
 export function computeDataChecksum(data: FullBackupPayload["data"]): string {

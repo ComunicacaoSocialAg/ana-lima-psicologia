@@ -571,6 +571,11 @@ export const AppProvider: React.FC<{ children: React.ReactNode }> = ({
         const updated: Session = { ...ses, status };
         const { session: savedSession, syncedPayment } =
           storageService.saveSession(updated);
+        if (status === "completed") {
+          storageService.triggerAutoSnapshot(
+            `Conclusão de Sessão: ${ses.patientName} (${ses.date})`,
+          );
+        }
         refreshAllData();
         if (currentUser) {
           cloudSyncService.pushSession(currentUser.uid, savedSession);

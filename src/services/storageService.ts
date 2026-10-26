@@ -63,14 +63,24 @@ const INITIAL_PAYMENTS: Payment[] = [];
 
 class StorageService {
   getFinancialLedger(): { charges: any[]; coverage: string[] } {
-    return JSON.parse(
-      vaultReadCached("ana_lima_financial_ledger_v2") ||
-        '{"charges":[],"coverage":[]}',
-    );
+    const raw =
+      typeof localStorage !== "undefined"
+        ? vaultReadCached("ana_lima_financial_ledger_v2") ||
+          localStorage.getItem("ana_lima_financial_ledger_v2")
+        : null;
+    return JSON.parse(raw || '{"charges":[],"coverage":[]}');
   }
   setFinancialLedger(value: { charges?: any[]; coverage?: string[] }) {
     const ledger = { ...this.getFinancialLedger(), ...value };
-    void vaultSetItem("ana_lima_financial_ledger_v2", JSON.stringify(ledger));
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem(
+          "ana_lima_financial_ledger_v2",
+          JSON.stringify(ledger),
+        );
+      } catch {}
+    }
+    void vaultSetItem("ana_lima_financial_ledger_v2", JSON.stringify(ledger)).catch(() => {});
   }
   getUncoveredPayments() {
     const covered = new Set(this.getFinancialLedger().coverage);
@@ -89,13 +99,18 @@ class StorageService {
   }
   private memoryCache: Map<string, any> = new Map();
 
-  // Persiste simultaneamente no cache em memória (0ms para UI síncrona) e criptografado em repouso no cofre local
+  // Persiste simultaneamente no cache em memória (0ms para UI síncrona), no localStorage e no cofre se ativo
   private persist(key: string, data: any): void {
     this.memoryCache.set(key, data);
     const serialized = JSON.stringify(data);
-    vaultSetItem(key, serialized).catch((err) => {
-      console.warn(`Alerta ao persistir no cofre criptografado '${key}':`, err);
-    });
+    if (typeof localStorage !== "undefined") {
+      try {
+        localStorage.setItem(key, serialized);
+      } catch (e) {
+        console.warn(`Alerta ao persistir em localStorage '${key}':`, e);
+      }
+    }
+    vaultSetItem(key, serialized).catch(() => {});
   }
 
   // Hidrata o cache de memória decifrando os dados protegidos pelo cofre (Web Crypto AES-256-GCM)
@@ -168,7 +183,7 @@ class StorageService {
   }
 
   // Aciona o cofre de espelhamento e redundância automática
-  private triggerAutoSnapshot(reason: string): void {
+  public triggerAutoSnapshot(reason: string): void {
     try {
       saveAutomatedSnapshot(this.getFullBackupData(), reason);
     } catch (e) {
@@ -183,7 +198,8 @@ class StorageService {
     }
     const raw =
       typeof localStorage !== "undefined"
-        ? vaultReadCached(STORAGE_KEYS.PATIENTS)
+        ? vaultReadCached(STORAGE_KEYS.PATIENTS) ||
+          localStorage.getItem(STORAGE_KEYS.PATIENTS)
         : null;
     if (raw && !raw.includes('"_vault":true')) {
       try {
@@ -235,7 +251,8 @@ class StorageService {
     }
     const raw =
       typeof localStorage !== "undefined"
-        ? vaultReadCached(STORAGE_KEYS.ANAMNESIS)
+        ? vaultReadCached(STORAGE_KEYS.ANAMNESIS) ||
+          localStorage.getItem(STORAGE_KEYS.ANAMNESIS)
         : null;
     if (raw && !raw.includes('"_vault":true')) {
       try {
@@ -275,7 +292,8 @@ class StorageService {
     }
     const raw =
       typeof localStorage !== "undefined"
-        ? vaultReadCached(STORAGE_KEYS.SESSIONS)
+        ? vaultReadCached(STORAGE_KEYS.SESSIONS) ||
+          localStorage.getItem(STORAGE_KEYS.SESSIONS)
         : null;
     if (raw && !raw.includes('"_vault":true')) {
       try {
@@ -392,7 +410,8 @@ class StorageService {
     }
     const raw =
       typeof localStorage !== "undefined"
-        ? vaultReadCached(STORAGE_KEYS.RECORDS)
+        ? vaultReadCached(STORAGE_KEYS.RECORDS) ||
+          localStorage.getItem(STORAGE_KEYS.RECORDS)
         : null;
     if (raw && !raw.includes('"_vault":true')) {
       try {
@@ -476,7 +495,8 @@ class StorageService {
     }
     const raw =
       typeof localStorage !== "undefined"
-        ? vaultReadCached(STORAGE_KEYS.ASSESSMENTS)
+        ? vaultReadCached(STORAGE_KEYS.ASSESSMENTS) ||
+          localStorage.getItem(STORAGE_KEYS.ASSESSMENTS)
         : null;
     if (raw && !raw.includes('"_vault":true')) {
       try {
@@ -518,7 +538,8 @@ class StorageService {
     }
     const raw =
       typeof localStorage !== "undefined"
-        ? vaultReadCached(STORAGE_KEYS.PAYMENTS)
+        ? vaultReadCached(STORAGE_KEYS.PAYMENTS) ||
+          localStorage.getItem(STORAGE_KEYS.PAYMENTS)
         : null;
     if (raw && !raw.includes('"_vault":true')) {
       try {
@@ -554,7 +575,8 @@ class StorageService {
     }
     const raw =
       typeof localStorage !== "undefined"
-        ? vaultReadCached(STORAGE_KEYS.SETTINGS)
+        ? vaultReadCached(STORAGE_KEYS.SETTINGS) ||
+          localStorage.getItem(STORAGE_KEYS.SETTINGS)
         : null;
     if (!raw) return INITIAL_SETTINGS;
     if (!raw.includes('"_vault":true')) {

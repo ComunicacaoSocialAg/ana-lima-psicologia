@@ -1,5 +1,3 @@
-import { SecurityNotice } from "./components/common/SecurityNotice";
-import { AccessGate } from "./components/auth/AccessGate";
 import React, { useState } from "react";
 import { AppProvider, useApp } from "./context/AppContext";
 import { Sidebar } from "./components/layout/Sidebar";
@@ -170,7 +168,6 @@ const MainLayout: React.FC = () => {
         <PwaInstallPrompt />
 
         <main className="flex-1 overflow-y-auto bg-slate-50/70 pb-[calc(5.5rem+env(safe-area-inset-bottom,0px))] md:pb-12">
-          <SecurityNotice />
           {currentView === "dashboard" && (
             <DashboardView
               onNewSessionClick={() => openNewSessionModal()}
@@ -256,11 +253,9 @@ export function App() {
   }
 
   return (
-    <AccessGate>
-      <AppProvider>
-        <MainLayout />
-      </AppProvider>
-    </AccessGate>
+    <AppProvider>
+      <MainLayout />
+    </AppProvider>
   );
 }
 

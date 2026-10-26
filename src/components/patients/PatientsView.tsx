@@ -15,6 +15,7 @@ import {
   Video,
   UserCheck,
   Sparkles,
+  Download,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { Patient, PatientStatus, Modality } from "../../types";
@@ -22,6 +23,7 @@ import { PatientModal } from "./PatientModal";
 import { WhatsAppModal } from "../common/WhatsAppModal";
 import { SendIntakeWhatsAppModal } from "./SendIntakeWhatsAppModal";
 import { formatDateBR } from "../../utils/dateUtils";
+import { exportPatientsToCsv } from "../../services/exportService";
 
 interface PatientsViewProps {
   onNewPatientClick: () => void;
@@ -147,6 +149,15 @@ export const PatientsView: React.FC<PatientsViewProps> = ({
           >
             <MessageSquare className="w-4 h-4" />
             <span>Enviar Cadastro WhatsApp</span>
+          </button>
+
+          <button
+            onClick={() => exportPatientsToCsv(filteredPatients.length > 0 ? filteredPatients : patients)}
+            className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300 shadow-2xs transition-colors shrink-0"
+            title="Exportar pacientes para planilha CSV (compatível com Excel)"
+          >
+            <Download className="w-4 h-4 text-slate-600" />
+            <span>Baixar CSV</span>
           </button>
 
           <button

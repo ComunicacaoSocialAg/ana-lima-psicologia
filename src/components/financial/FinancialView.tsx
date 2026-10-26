@@ -11,6 +11,7 @@ import {
   Receipt,
   CreditCard,
   Layers,
+  Download,
 } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { Payment, PaymentStatus, PaymentMethod } from "../../types";
@@ -18,6 +19,7 @@ import { WhatsAppModal } from "../common/WhatsAppModal";
 import { PatientAutocomplete } from "../common/PatientAutocomplete";
 import { generateReceiptPdf } from "../../services/pdfService";
 import { formatDateBR } from "../../utils/dateUtils";
+import { exportFinancialToCsv } from "../../services/exportService";
 import { BillingPanel } from "./BillingPanel";
 import {
   FinancialPeriod,
@@ -325,6 +327,19 @@ export const FinancialView: React.FC = () => {
                 <option value="cash">Dinheiro</option>
                 <option value="card">Cartão</option>
               </select>
+
+              <button
+                onClick={() =>
+                  exportFinancialToCsv(displayPayments, patients, {
+                    periodLabel: period.label,
+                  })
+                }
+                className="flex items-center gap-1.5 px-3.5 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 text-xs font-semibold rounded-xl border border-slate-300 shadow-2xs transition-colors shrink-0"
+                title="Baixar lançamentos em planilha CSV compatível com Excel"
+              >
+                <Download className="w-4 h-4 text-slate-600" />
+                <span>Baixar CSV</span>
+              </button>
 
               <button
                 onClick={() => setIsNewPaymentOpen(true)}

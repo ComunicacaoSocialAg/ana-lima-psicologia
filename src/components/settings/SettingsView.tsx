@@ -1,20 +1,38 @@
 import { storageService } from "../../services/storageService";
 import { getLegacyRecovery, listOutbox } from "../../services/localVaultCrypto";
 import React, { useState } from "react";
+import { Download, FileSpreadsheet } from "lucide-react";
 import { useApp } from "../../context/AppContext";
 import { authService } from "../../services/authService";
 import {
   validateOrDecryptBackup,
   exportEncryptedBackup,
 } from "../../services/backupService";
+import {
+  exportAllDataToXlsx,
+  exportPatientsToCsv,
+  exportFinancialToCsv,
+} from "../../services/exportService";
+
 export function SettingsView() {
-  const { settings, updateSettings, triggerEncryptedBackup, lockApp } =
-    useApp();
+  const {
+    settings,
+    updateSettings,
+    triggerEncryptedBackup,
+    lockApp,
+    patients,
+    sessions,
+    records,
+    assessments,
+    payments,
+  } = useApp();
   const [form, setForm] = useState(settings);
   const [pass, setPass] = useState("");
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
   const [busy, setBusy] = useState(false);
+  const [includeRecordsInExcel, setIncludeRecordsInExcel] = useState(false);
+  const [exportingXlsx, setExportingXlsx] = useState(false);
   return (
     <main className="p-6 max-w-3xl mx-auto space-y-6">
       <h1 className="text-2xl font-bold">Configurações</h1>
@@ -112,6 +130,106 @@ export function SettingsView() {
           apenas durante esta sessão do navegador.
         </p>
       </section>
+
+      {/* Exportação de Dados em Planilhas (Excel e CSV) */}
+      <section className="bg-white border rounded-xl p-5 space-y-4">
+        <div>
+          <h2 className="text-xl font-semibold text-slate-900 flex items-center gap-2">
+            <FileSpreadsheet className="w-5 h-5 text-emerald-700" />
+            <span>Exportação de Dados (Planilhas Excel & CSV)</span>
+          </h2>
+          <p className="text-xs text-slate-600 mt-1">
+            Exporte os dados da clínica em planilhas estruturadas para o Microsoft Excel e LibreOffice.
+            O processamento ocorre 100% no seu navegador com proteção contra injeção de fórmulas e compatibilidade direta com acentuação brasileira.
+          </p>
+        </div>
+
+        <div className="bg-slate-50 border border-slate-200 rounded-xl p-4 space-y-3">
+          <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+            <div>
+              <span className="font-semibold text-sm text-slate-800 block">
+                Pasta de Trabalho Completa (.xlsx)
+              </span>
+              <span className="text-xs text-slate-500">
+                Arquivo com abas separadas: Pacientes ({patients.length}), Sessões ({sessions.length}), Financeiro ({payments.length}) e Escalas ({assessments.length}).
+              </span>
+            </div>
+
+            <button
+              disabled={exportingXlsx}
+              onClick={async () => {
+                setExportingXlsx(true);
+                setError("");
+                setMessage("");
+                try {
+                  await exportAllDataToXlsx({
+                    patients,
+                    sessions,
+                    payments,
+                    assessments,
+                    records,
+                    includeClinicalRecords: includeRecordsInExcel,
+                  });
+                  setMessage("Planilha Excel (.xlsx) gerada e baixada com sucesso!");
+                } catch (e) {
+                  setError((e as Error).message);
+                } finally {
+                  setExportingXlsx(false);
+                }
+              }}
+              className="flex items-center gap-2 px-4 py-2.5 bg-emerald-800 hover:bg-emerald-900 text-white rounded-xl text-xs font-semibold shadow-2xs transition-colors shrink-0 disabled:opacity-50"
+            >
+              <Download className="w-4 h-4" />
+              <span>{exportingXlsx ? "Gerando planilha..." : "Baixar Tudo em Excel (.xlsx)"}</span>
+            </button>
+          </div>
+
+          <label className="flex items-start gap-2.5 pt-2 border-t border-slate-200 text-xs text-slate-700 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={includeRecordsInExcel}
+              onChange={(e) => setIncludeRecordsInExcel(e.target.checked)}
+              className="mt-0.5 rounded border-slate-300 text-emerald-700 focus:ring-emerald-600"
+            />
+            <div>
+              <span className="font-medium text-slate-800">
+                Incluir aba com histórico de Prontuários & Evoluções Clínicas ({records.length} registros)
+              </span>
+              <p className="text-[11px] text-slate-500 mt-0.5">
+                ⚠️ <strong>Atenção Ética (CFP 001/2009 e LGPD):</strong> Os prontuários contêm anotações íntimas de saúde mental.
+                Ao exportar em arquivo Excel aberto, guarde o arquivo em computador protegido por senha ou biometria.
+              </p>
+            </div>
+          </label>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 pt-1">
+          <button
+            type="button"
+            onClick={() => {
+              exportPatientsToCsv(patients);
+              setMessage("Arquivo CSV de pacientes gerado com sucesso.");
+            }}
+            className="flex items-center justify-center gap-2 p-3 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs transition-colors"
+          >
+            <Download className="w-4 h-4 text-slate-600" />
+            <span>Baixar Pacientes em CSV ({patients.length})</span>
+          </button>
+
+          <button
+            type="button"
+            onClick={() => {
+              exportFinancialToCsv(payments, patients);
+              setMessage("Arquivo CSV financeiro gerado com sucesso.");
+            }}
+            className="flex items-center justify-center gap-2 p-3 bg-white hover:bg-slate-50 border border-slate-300 rounded-xl text-xs font-semibold text-slate-800 shadow-2xs transition-colors"
+          >
+            <Download className="w-4 h-4 text-slate-600" />
+            <span>Baixar Financeiro em CSV ({payments.length})</span>
+          </button>
+        </div>
+      </section>
+
       <section className="bg-white border rounded-xl p-5 space-y-3">
         <h2 className="text-xl font-semibold">Recuperação criptografada</h2>
         <p>
