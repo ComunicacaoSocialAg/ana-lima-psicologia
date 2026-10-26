@@ -1,6 +1,7 @@
 import { jsPDF } from 'jspdf';
-import { Patient, ClinicSettings, ClinicalRecord } from '../types';
+import { Patient, ClinicSettings, ClinicalRecord, Payment } from '../types';
 import { auditService } from './auditService';
+import { FinancialMetrics, formatBRL } from '../utils/financialAnalytics';
 
 import { formatDateBR } from '../utils/dateUtils';
 export { formatDateBR };
@@ -384,5 +385,263 @@ export function exportClinicalRecordsPdf(params: {
     patientId: patient.id,
     patientName: patient.name,
     details: `Exportação de Prontuário em PDF com ${records.length} evoluções clínicas`
+  });
+}
+
+/**
+ * Gera relatório financeiro e demonstrativo de receitas em PDF (Carnê-Leão / IRPF / Contabilidade)
+ */
+export function generateFinancialReportPdf(params: {
+  settings: ClinicSettings;
+  periodLabel: string;
+  payments: Payment[];
+  patients: Patient[];
+  metrics: FinancialMetrics;
+}): void {
+  const { settings, periodLabel, payments, patients, metrics } = params;
+  const doc = new jsPDF({
+    orientation: 'portrait',
+    unit: 'mm',
+    format: 'a4',
+  });
+
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  const emissionDateBR = formatDateBR(new Date().toISOString());
+  const patientMap = new Map<string, Patient>();
+  patients.forEach((p) => patientMap.set(p.id, p));
+
+  const drawHeader = (pageNumber: number) => {
+    // Faixa Superior Verde da Clínica (#004F3B)
+    doc.setFillColor(0, 79, 59);
+    doc.rect(0, 0, pageWidth, 24, 'F');
+
+    doc.setTextColor(255, 255, 255);
+    doc.setFontSize(13);
+    doc.setFont('helvetica', 'bold');
+    doc.text(settings.psychologistName.toUpperCase(), 15, 11);
+
+    doc.setFontSize(8.5);
+    doc.setFont('helvetica', 'normal');
+    doc.text(
+      `Psicóloga Clínica • CRP: ${settings.crp} • CPF: ${settings.cpf || 'Não informado'}`,
+      15,
+      18
+    );
+
+    doc.setFontSize(8);
+    doc.text(
+      `Página ${pageNumber}`,
+      pageWidth - 15,
+      18,
+      { align: 'right' }
+    );
+  };
+
+  drawHeader(1);
+
+  // Título do Relatório
+  let currentY = 32;
+  doc.setTextColor(15, 23, 42); // slate-900
+  doc.setFontSize(14);
+  doc.setFont('helvetica', 'bold');
+  doc.text('DEMONSTRATIVO FINANCEIRO & LIVRO-CAIXA CLÍNICO', 15, currentY);
+
+  currentY += 6;
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text(
+    `Período Apurado: ${periodLabel} • Data de Emissão: ${emissionDateBR} • Emitido pelo Sistema da Clínica`,
+    15,
+    currentY
+  );
+
+  currentY += 8;
+
+  // Quadro de Resumo de Indicadores
+  doc.setFillColor(248, 250, 252); // slate-50
+  doc.setDrawColor(226, 232, 240); // slate-200
+  doc.roundedRect(15, currentY, pageWidth - 30, 24, 2, 2, 'FD');
+
+  const colWidth = (pageWidth - 30) / 4;
+
+  // Coluna 1: Total Realizado
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('RECEITA REALIZADA (CAIXA)', 19, currentY + 7);
+  doc.setTextColor(13, 148, 136); // teal-600
+  doc.setFontSize(12);
+  doc.text(formatBRL(metrics.totalReceived), 19, currentY + 14);
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${metrics.receivedCount} lançamentos quitados`, 19, currentY + 19);
+
+  // Coluna 2: Total Pendente
+  const c2X = 15 + colWidth;
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('A RECEBER (PENDENTE)', c2X + 4, currentY + 7);
+  doc.setTextColor(217, 119, 6); // amber-600
+  doc.setFontSize(12);
+  doc.text(formatBRL(metrics.totalPending), c2X + 4, currentY + 14);
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`${metrics.pendingCount} lançamentos em aberto`, c2X + 4, currentY + 19);
+
+  // Coluna 3: Previsão Total
+  const c3X = 15 + colWidth * 2;
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('FATURAMENTO TOTAL', c3X + 4, currentY + 7);
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(12);
+  doc.text(formatBRL(metrics.totalProjected), c3X + 4, currentY + 14);
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
+  doc.text(`Taxa de quitação: ${metrics.collectionRate}%`, c3X + 4, currentY + 19);
+
+  // Coluna 4: Ticket Médio
+  const c4X = 15 + colWidth * 3;
+  doc.setTextColor(100, 116, 139);
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'bold');
+  doc.text('TICKET MÉDIO / SESSÃO', c4X + 4, currentY + 7);
+  doc.setTextColor(30, 41, 59);
+  doc.setFontSize(12);
+  doc.text(formatBRL(metrics.ticketAverage), c4X + 4, currentY + 14);
+  doc.setFontSize(7);
+  doc.setTextColor(100, 116, 139);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Valor médio realizado', c4X + 4, currentY + 19);
+
+  currentY += 32;
+
+  // Título da Tabela
+  doc.setTextColor(15, 23, 42);
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.text(`Detalhamento dos Lançamentos (${payments.length})`, 15, currentY);
+
+  currentY += 5;
+
+  // Cabeçalho da Tabela
+  const drawTableHeader = (y: number) => {
+    doc.setFillColor(241, 245, 249); // slate-100
+    doc.rect(15, y, pageWidth - 30, 7, 'F');
+    doc.setTextColor(71, 85, 105);
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'bold');
+
+    doc.text('DATA', 18, y + 5);
+    doc.text('PACIENTE', 42, y + 5);
+    doc.text('CPF', 105, y + 5);
+    doc.text('FORMA', 135, y + 5);
+    doc.text('RECIBO', 156, y + 5);
+    doc.text('VALOR', pageWidth - 18, y + 5, { align: 'right' });
+  };
+
+  drawTableHeader(currentY);
+  currentY += 8;
+
+  let pageIndex = 1;
+
+  payments.forEach((pay, idx) => {
+    // Quebra de página automática
+    if (currentY > pageHeight - 25) {
+      doc.addPage();
+      pageIndex++;
+      drawHeader(pageIndex);
+      currentY = 32;
+      drawTableHeader(currentY);
+      currentY += 8;
+    }
+
+    const patient = patientMap.get(pay.patientId);
+    const dateStr = formatDateBR(pay.paidDate || pay.dueDate || pay.createdAt);
+    const patientName = (pay.patientName || patient?.name || 'Paciente').slice(0, 32);
+    const cpf = patient?.cpf || '-';
+    const method = (pay.paymentMethod || 'PIX').toUpperCase();
+    const receipt = pay.receiptNumber || '-';
+    const amountStr = formatBRL(pay.amount);
+
+    // Linha zebrada
+    if (idx % 2 === 1) {
+      doc.setFillColor(248, 250, 252);
+      doc.rect(15, currentY - 3.5, pageWidth - 30, 6, 'F');
+    }
+
+    doc.setFontSize(7.5);
+    doc.setFont('helvetica', 'normal');
+    doc.setTextColor(30, 41, 59);
+
+    doc.text(dateStr, 18, currentY);
+    doc.text(patientName, 42, currentY);
+    doc.text(cpf, 105, currentY);
+    doc.text(method, 135, currentY);
+    doc.text(receipt, 156, currentY);
+
+    if (pay.status === 'paid') {
+      doc.setTextColor(13, 148, 136);
+    } else {
+      doc.setTextColor(217, 119, 6);
+    }
+    doc.setFont('helvetica', 'bold');
+    doc.text(amountStr, pageWidth - 18, currentY, { align: 'right' });
+
+    currentY += 6;
+  });
+
+  // Linha final divisória
+  doc.setDrawColor(226, 232, 240);
+  doc.line(15, currentY, pageWidth - 15, currentY);
+  currentY += 8;
+
+  // Bloco de Encerramento e Assinatura
+  if (currentY > pageHeight - 35) {
+    doc.addPage();
+    pageIndex++;
+    drawHeader(pageIndex);
+    currentY = 32;
+  }
+
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text(
+    'Demonstrativo gerado para controle gerencial, comprovação fiscal e conciliação do Carnê-Leão (Receita Federal do Brasil).',
+    15,
+    currentY
+  );
+
+  currentY += 15;
+
+  const signLineX = pageWidth / 2 - 40;
+  doc.setDrawColor(148, 163, 184);
+  doc.line(signLineX, currentY, signLineX + 80, currentY);
+
+  currentY += 4;
+  doc.setFontSize(8.5);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(30, 41, 59);
+  doc.text(settings.psychologistName, pageWidth / 2, currentY, { align: 'center' });
+
+  currentY += 4;
+  doc.setFontSize(7.5);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 116, 139);
+  doc.text(`Psicóloga • CRP: ${settings.crp}`, pageWidth / 2, currentY, { align: 'center' });
+
+  const safeFilename = `Demonstrativo_Financeiro_Ana_Lima_${periodLabel.replace(/[^a-zA-Z0-9]+/g, '_')}.pdf`;
+  doc.save(safeFilename);
+
+  auditService.log('export_financial_pdf', {
+    details: `Exportação de Relatório Financeiro: ${periodLabel} com ${payments.length} lançamentos`
   });
 }

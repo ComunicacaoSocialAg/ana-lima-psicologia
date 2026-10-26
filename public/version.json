@@ -1,6 +1,6 @@
 {
-  "version": "3.2.0",
-  "buildId": "v3.2.0-blog-editorial",
-  "releasedAt": "26/10/2026, 17:30",
-  "notes": "Novo Caderno Clínico & Blog no ar! Agora você tem controle total para criar, editar, apagar e ajustar capas de matérias no site analimapsicologia.com.br, com fotos em alta definição, SEO para Poços de Caldas e AEO para o Google."
+  "version": "3.3.0",
+  "buildId": "v3.3.0-financeiro-inteligente",
+  "releasedAt": "26/10/2026, 18:10",
+  "notes": "Novo Módulo Financeiro no ar! Agora você tem controle por competência mensal e anual, gráficos analíticos de evolução, comparativo percentual mês a mês e fechamento contábil para o Carnê-Leão com exportação em CSV e demonstrativo em PDF."
 }

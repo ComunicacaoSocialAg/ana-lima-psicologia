@@ -15,6 +15,7 @@ export type AuditAction =
   | "view_record"
   | "save_record"
   | "export_record_pdf"
+  | "export_financial_pdf"
   | "export_backup"
   | "restore_backup"
   | "delete_patient"

@@ -1,14 +1,16 @@
 {
   "name": "clinica-ana-lima",
   "private": true,
-  "version": "3.2.0",
+  "version": "3.3.0",
   "type": "module",
   "scripts": {
     "dev": "vite",
     "build": "tsc && vite build",
     "preview": "vite preview",
     "deploy": "node scripts/deploy-reviewed.mjs",
-    "test:billing": "npm --prefix functions test"
+    "test:billing": "npm --prefix functions test",
+    "test:financial": "node --experimental-strip-types --test tests/financialAnalytics.test.mjs",
+    "test": "npm run test:financial && npm run test:billing"
   },
   "dependencies": {
     "clsx": "^2.1.1",
