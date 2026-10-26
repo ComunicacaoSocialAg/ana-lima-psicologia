@@ -20,10 +20,9 @@ const DELETED_POSTS_KEY = "ana_lima_blog_deleted_ids";
 const INITIALIZED_KEY = "ana_lima_blog_initialized";
 
 /**
- * Matéria autoral de referência que já sobe pronta no blog.
- * Serve de modelo editorial para a Ana ver como fica formatado e ela pode editar ou apagar a qualquer momento.
+ * Matéria 1 de Referência: Ansiedade e Abordagem Histórico-Cultural
  */
-export const INITIAL_REFERENCE_POST: BlogPost = {
+export const POST_REFERENCIA_ANSIEDADE: BlogPost = {
   id: "post_referencia_ansiedade",
   title: "Ansiedade não é um defeito individual: a compreensão histórico-cultural",
   slug: "ansiedade-compreensao-historico-cultural",
@@ -63,7 +62,7 @@ export const INITIAL_REFERENCE_POST: BlogPost = {
     },
   ],
   contentHtml: `
-    <p>Na clínica psicológica contemporânea, um dos fenômenos mais frequentes é a sensação de culpa que acompanha a ansiedade. O paciente frequentemente chega ao consultório acreditando que há uma falha biológica ou moral intrínseca em sua mente — uma incapacidade de "dar conta" das exigências da vida.</p>
+    <p>Na clínica psicológica contemporânea, um dos fenômenos mais frequentes é a sensação de culpa que acompanha a ansiedade. O paciente frequentemente chega ao consultório acreditando que há uma falha biológica ou moral intrínseca em sua mente — uma incapacidade de "dar conta" das exigências cotidianas.</p>
     
     <h2>O Sofrimento não Surge Descolado da Realidade</h2>
     <p>Pela Psicologia Histórico-Cultural, fundamentada nas contribuições de Lev Vygotsky e nos estudos do desenvolvimento humano, as funções psicológicas superiores não se desenvolvem no vácuo. Nós nos constituímos como sujeitos na relação ativa com o mundo e com os outros.</p>
@@ -76,6 +75,74 @@ export const INITIAL_REFERENCE_POST: BlogPost = {
     <p>Compreender a raiz do seu sofrimento não significa resignar-se a ele, mas sim desarmar a culpa para construir uma posição de maturidade e autonomia prática diante da própria história.</p>
   `,
 };
+
+/**
+ * Matéria 2 de Referência: Vínculos Afetivos e Padrões Relacionais
+ */
+export const POST_REFERENCIA_VINCULOS: BlogPost = {
+  id: "post_referencia_vinculos",
+  title: "Por que repetimos dinâmicas que nos machucam? O papel dos vínculos",
+  slug: "por-que-repetimos-dinamicas-relacionais",
+  excerpt:
+    "A repetição de padrões afetivos e comportamentais não decorre de falta de força de vontade, mas de estruturas relacionais assimiladas na história singular de cada sujeito que pedem ressignificação consciente.",
+  category: "Relacionamentos & Vínculos",
+  tags: [
+    "relacionamentos",
+    "vínculos afetivos",
+    "psicoterapia",
+    "autoconhecimento",
+    "desenvolvimento humano",
+  ],
+  coverImageUrl: "/hero-poster.webp",
+  coverImageCaption:
+    "Compreensão profunda das estruturas relacionais e mediação afetiva na clínica psicológica",
+  coverImagePosition: "center",
+  status: "published",
+  readTimeMinutes: 4,
+  publishedAt: "2026-10-24T14:30:00Z",
+  createdAt: "2026-10-24T14:30:00Z",
+  updatedAt: "2026-10-24T14:30:00Z",
+  authorName: "Ana Lima",
+  authorCrp: "04/60205",
+  seoTitle: "Por que Repetimos Padrões nos Relacionamentos? • Ana Lima",
+  seoDescription:
+    "Compreenda como as primeiras mediações afetivas moldam nossas escolhas e como transformar padrões relacionais na terapia.",
+  faqItems: [
+    {
+      question: "Por que é tão difícil quebrar padrões em relacionamentos?",
+      answer:
+        "Porque os padrões relacionais foram aprendidos como mecanismos de segurança em fases anteriores da vida. Modificá-los exige desconstruir crenças profundas e experimentar novas posturas na prática psicoterapêutica.",
+    },
+    {
+      question: "Como a psicoterapia ajuda na resolução de conflitos afetivos?",
+      answer:
+        "A terapia oferece um espaço de reflexão crítica para que o sujeito identifique suas feridas de origem, estabeleça limites claros e aprenda a se posicionar com firmeza e afeto diante dos outros.",
+    },
+  ],
+  contentHtml: `
+    <p>É muito comum ouvir na clínica relatos de pessoas que se percebem presas a ciclos relacionais repetitivos: a escolha por parceiros emocionalmente indisponíveis, a dificuldade crônica em estabelecer limites saudáveis ou a tendência involuntária de assumir a responsabilidade pelo bem-estar do outro.</p>
+
+    <h2>O Passado que se Faz Presente sem Aviso</h2>
+    <p>Na perspectiva histórico-cultural, nossas formas de amar, confiar e temer não nascem prontas no cérebro; elas são internalizadas através das primeiras mediações afetivas que experimentamos no mundo. Aquilo que vivenciamos intersubjetivamente na infância e juventude torna-se a nossa gramática relacional interna.</p>
+    <p>Muitas vezes, a repetição de uma dinâmica dolorosa acontece porque ela é <strong>familiar e previsível</strong> para o nosso psiquismo. O desconhecido, ainda que mais saudável, gera estranhamento inicial.</p>
+
+    <blockquote>“Aquilo que não é conscientizado e elaborado na palavra tende a se repetir como destino involuntário no cotidiano.”</blockquote>
+
+    <h2>Transformando a Repetição em Escolha Consciente</h2>
+    <p>O objetivo do processo psicoterapêutico não é apontar culpados no passado, mas desvelar o sentido das escolhas presentes. Ao reconhecer as origens das suas necessidades emocionais e dos seus medos de abandono ou rejeição, abre-se a possibilidade de construir novas respostas relacionais.</p>
+    <p>A autonomia afetiva nasce da coragem de olhar para a própria história sem resignação, aprendendo a sustentar vínculos que respeitem sua integridade e seu valor.</p>
+  `,
+};
+
+/**
+ * Apenas 2 matérias de referência prontas para modelo da Ana.
+ */
+export const INITIAL_REFERENCE_POSTS: BlogPost[] = [
+  POST_REFERENCIA_ANSIEDADE,
+  POST_REFERENCIA_VINCULOS,
+];
+
+export const INITIAL_REFERENCE_POST: BlogPost = POST_REFERENCIA_ANSIEDADE;
 
 export function getDeletedPostIds(): string[] {
   if (typeof window === "undefined") return [];
@@ -101,20 +168,20 @@ export function addDeletedPostId(idOrSlug: string): void {
 }
 
 function getLocalPosts(): BlogPost[] {
-  if (typeof window === "undefined") return [INITIAL_REFERENCE_POST];
+  if (typeof window === "undefined") return INITIAL_REFERENCE_POSTS;
   try {
     const deletedIds = getDeletedPostIds();
     const isInit = localStorage.getItem(INITIALIZED_KEY) === "true";
     const raw = localStorage.getItem(LOCAL_STORAGE_KEY);
 
     if (!raw && !isInit) {
-      // Primeira inicialização do sistema: salva o post de referência para modelo inicial
+      // Primeira inicialização do sistema: salva as 2 matérias de referência
       localStorage.setItem(INITIALIZED_KEY, "true");
-      if (!deletedIds.includes(INITIAL_REFERENCE_POST.id) && !deletedIds.includes(INITIAL_REFERENCE_POST.slug)) {
-        localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify([INITIAL_REFERENCE_POST]));
-        return [INITIAL_REFERENCE_POST];
-      }
-      return [];
+      const seeded = INITIAL_REFERENCE_POSTS.filter(
+        (p) => !deletedIds.includes(p.id) && !deletedIds.includes(p.slug)
+      );
+      localStorage.setItem(LOCAL_STORAGE_KEY, JSON.stringify(seeded));
+      return seeded;
     }
 
     if (!raw) return [];
@@ -174,8 +241,7 @@ export interface CompressedImageResult {
 
 /**
  * Comprime uma imagem localmente no navegador antes de qualquer gravação.
- * Redimensiona para resolução ideal 16:9 (max 1200x675) e converte para WebP leve (~40 a 70 KB),
- * garantindo que nunca estoure a cota do navegador nem deixe o site pesado.
+ * Redimensiona para resolução ideal 16:9 (max 1200x675) e converte para WebP leve (~40 a 70 KB).
  */
 export async function compressImageToWebP(
   file: File,
@@ -205,7 +271,6 @@ export async function compressImageToWebP(
           return;
         }
 
-        // Renderização suave de alta qualidade
         ctx.imageSmoothingEnabled = true;
         ctx.imageSmoothingQuality = "high";
         ctx.drawImage(img, 0, 0, width, height);
@@ -222,7 +287,6 @@ export async function compressImageToWebP(
                 };
                 dataUrlReader.readAsDataURL(blob);
               } else {
-                // Fallback para JPEG com compressão equilibrada
                 canvas.toBlob(
                   (jpegBlob) => {
                     if (jpegBlob) {
@@ -259,7 +323,6 @@ export async function compressImageToWebP(
 
 /**
  * Processa a imagem de capa com compressão WebP rigorosa.
- * Tenta Storage oficial do Firebase se autenticado; se offline/local, entrega DataURL compacta (~50KB).
  */
 export async function uploadBlogImage(
   file: File,
@@ -268,7 +331,6 @@ export async function uploadBlogImage(
   try {
     const compressed = await compressImageToWebP(file);
 
-    // Tenta Storage oficial do Firebase se disponível e autenticado
     if (app) {
       try {
         const storage = getStorage(app);
@@ -287,7 +349,6 @@ export async function uploadBlogImage(
       }
     }
 
-    // Retorna a URL compactada WebP (super leve, ~50 KB)
     return { url: compressed.dataUrl, sizeKb: compressed.sizeKb };
   } catch (err) {
     console.error("Erro no processamento da imagem:", err);
@@ -306,10 +367,8 @@ export async function listAllPosts(): Promise<BlogPost[]> {
 
   if (db) {
     try {
-      const q = query(
-        collection(db, COLLECTION_NAME),
-        orderBy("updatedAt", "desc")
-      );
+      // Consulta direta por coleção sem exigir índice composto no Firestore
+      const q = collection(db, COLLECTION_NAME);
       const snapshot = await getDocs(q);
       remote = snapshot.docs.map((d) => ({ id: d.id, ...d.data() } as BlogPost));
     } catch (err) {
@@ -418,7 +477,6 @@ export async function savePost(
     faqItems: post.faqItems || [],
   };
 
-  // Se o post estava marcado como deletado por engano e está sendo salvo novamente, remove da lista de deletados
   const deletedIds = getDeletedPostIds();
   if (deletedIds.includes(id) || deletedIds.includes(slug)) {
     const updatedDeleted = deletedIds.filter((d) => d !== id && d !== slug);
@@ -450,7 +508,6 @@ export async function savePost(
 
 /**
  * Remove um post de forma segura no cache local e no Firestore.
- * Garante que nunca mais reapareça.
  */
 export async function deletePost(id: string): Promise<void> {
   const local = getLocalPosts();

@@ -896,41 +896,31 @@
       <div class="skeleton" style="height: 340px;"></div>
     `;
 
-    // Artigos de demonstração e fallback para nunca deixar a página em branco
+    // Apenas 2 matérias oficiais de referência e exemplo
     const curatedFallbacks = [
       {
-        id: "ansiedade-historia",
+        id: "post_referencia_ansiedade",
         title: "Ansiedade não é um defeito individual: a compreensão histórico-cultural",
         slug: "ansiedade-compreensao-historico-cultural",
         excerpt: "Na clínica psicológica, a ansiedade raramente surge do nada. Ela é frequentemente a melhor resposta que o sujeito conseguiu estruturar diante das pressões sociais, familiares e da sobrecarga da vida moderna.",
         category: "Ansiedade & Sobrecarga",
         readTimeMinutes: 4,
-        publishedAt: "2026-10-20T10:00:00Z",
+        publishedAt: "2026-10-26T10:00:00Z",
         coverImageUrl: "/ana-lima-portrait.webp",
+        coverImagePosition: "top",
         authorName: "Ana Lima",
         authorCrp: "04/60205"
       },
       {
-        id: "repeticao-padroes",
-        title: "Por que insistimos em repetir dinâmicas que nos machucam?",
+        id: "post_referencia_vinculos",
+        title: "Por que repetimos dinâmicas que nos machucam? O papel dos vínculos",
         slug: "por-que-repetimos-dinamicas-relacionais",
-        excerpt: "A repetição de padrões afetivos e profissionais não é falta de força de vontade, mas a reprodução inconsciente de estruturas relacionais assimiladas na história singular de cada um.",
+        excerpt: "A repetição de padrões afetivos e comportamentais não decorre de falta de força de vontade, mas de estruturas relacionais assimiladas na história singular de cada sujeito que pedem ressignificação consciente.",
         category: "Relacionamentos & Vínculos",
-        readTimeMinutes: 5,
-        publishedAt: "2026-10-15T14:30:00Z",
-        coverImageUrl: "/ana%20lima1.png",
-        authorName: "Ana Lima",
-        authorCrp: "04/60205"
-      },
-      {
-        id: "desenvolvimento-continuo",
-        title: "O desenvolvimento humano não termina na infância: a crise como metamorfose",
-        slug: "desenvolvimento-humano-crise-metamorfose",
-        excerpt: "Momentos de crise não marcam a falência da sua estabilidade; indicam que certas estruturas antigas já não sustentam quem você precisa ser no momento presente.",
-        category: "Transições de Vida",
-        readTimeMinutes: 3,
-        publishedAt: "2026-10-08T09:15:00Z",
+        readTimeMinutes: 4,
+        publishedAt: "2026-10-24T14:30:00Z",
         coverImageUrl: "/hero-poster.webp",
+        coverImagePosition: "center",
         authorName: "Ana Lima",
         authorCrp: "04/60205"
       }
@@ -947,10 +937,10 @@
       } catch (e) {}
 
       try {
+        // Consulta Firestore por status publicado (sem exigir índice composto)
         const q = query(
           collection(db, "blog_posts"),
-          where("status", "==", "published"),
-          orderBy("publishedAt", "desc")
+          where("status", "==", "published")
         );
         const snapshot = await getDocs(q);
         const fetched = snapshot.docs.map(d => ({ id: d.id, ...d.data() }));
@@ -985,7 +975,9 @@
             .filter(p => p.status === "published" && !deletedIds.includes(p.id) && !deletedIds.includes(p.slug))
             .forEach(p => map.set(p.slug, p));
         }
-        allPosts = Array.from(map.values());
+        allPosts = Array.from(map.values()).sort(
+          (a, b) => new Date(b.publishedAt || b.updatedAt).getTime() - new Date(a.publishedAt || a.updatedAt).getTime()
+        );
       }
       render();
     }
