@@ -247,9 +247,11 @@ export function App() {
 
   if (isBlogAdmin) {
     return (
-      <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-800">
-        <BlogAdminView />
-      </div>
+      <AuthGate>
+        <div className="min-h-screen bg-slate-50 font-sans antialiased text-slate-800">
+          <BlogAdminView />
+        </div>
+      </AuthGate>
     );
   }
 
