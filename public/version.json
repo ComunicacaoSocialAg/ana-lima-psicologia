@@ -1,6 +1,6 @@
 {
-  "version": "3.3.1",
-  "buildId": "v3.3.1-acesso-direto-simplificado",
-  "releasedAt": "26/10/2026, 19:35",
-  "notes": "Acesso ao consultório simplificado! A barreira de senha local foi removida para você entrar diretamente com seu login da Google, com todas as novas funções financeiras e relatórios disponíveis."
+  "version": "3.3.2",
+  "buildId": "v3.3.2-authgate-estrito",
+  "releasedAt": "05/11/2026, 16:10",
+  "notes": "Atualização de segurança: barreira estrita de autenticação. Acesso restrito e exclusivo à conta Google oficial da titular, bloqueando abertura de dados sem login prévio."
 }

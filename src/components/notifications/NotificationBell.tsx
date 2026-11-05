@@ -70,47 +70,6 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenPatien
     }
   };
 
-  const handleSimulateAlert = () => {
-    const existing = patients.find(p => p.isPreRegistration);
-    const samplePatient = existing || {
-      id: `pat-demo-${Date.now()}`,
-      name: 'Mariana Duarte (Teste)',
-      cpf: '123.456.789-00',
-      birthDate: '1995-04-12',
-      gender: 'Feminino',
-      profession: 'Arquiteta',
-      maritalStatus: 'Solteiro(a)',
-      phone: '(35) 99876-5432',
-      email: 'mariana.exemplo@gmail.com',
-      address: 'Rua Assis Figueiredo, Centro - Poços de Caldas/MG',
-      emergencyContact: {
-        name: 'Carlos Duarte',
-        relationship: 'Pai',
-        phone: '(35) 99123-4567'
-      },
-      status: 'waiting_list',
-      preferredModality: 'presencial',
-      agreedPrice: 200,
-      usualSchedule: 'Pref: Tarde (14h)',
-      startDate: new Date().toISOString().slice(0, 10),
-      referralSource: 'Pré-cadastro via WhatsApp',
-      notes: 'Busca acolhimento para ansiedade e estresse no trabalho.',
-      isPreRegistration: true,
-      preRegistrationData: {
-        submittedAt: new Date().toISOString(),
-        consentLgpd: true,
-        preferredShift: 'Tarde (13h às 18h)',
-        initialComplaint: 'Tenho sentido muita ansiedade e sobrecarga profissional recentemente. Gostaria de iniciar acompanhamento terapêutico no consultório.'
-      },
-      createdAt: new Date().toISOString(),
-      updatedAt: new Date().toISOString()
-    };
-
-    triggerNewIntakeAlert(samplePatient);
-    setNotifications(notificationService.getNotifications());
-    setIsOpen(false);
-  };
-
   const formatTimeAgo = (isoDate: string) => {
     const diffMs = Date.now() - new Date(isoDate).getTime();
     const diffMins = Math.floor(diffMs / 60000);
@@ -244,24 +203,15 @@ export const NotificationBell: React.FC<NotificationBellProps> = ({ onOpenPatien
             )}
           </div>
 
-          {/* Rodapé com Testes Rápidos */}
-          <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-center gap-3">
+          {/* Rodapé com Testes de Áudio */}
+          <div className="p-2.5 bg-slate-50 border-t border-slate-200 flex items-center justify-center">
             <button
               onClick={() => playNotificationChime()}
               className="text-[11px] text-slate-500 hover:text-slate-800 font-medium inline-flex items-center gap-1.5 transition-colors"
               title="Testar sinal sonoro de dois tons"
             >
               <Volume2 className="w-3.5 h-3.5 text-slate-400" />
-              <span>Testar som</span>
-            </button>
-            <span className="text-slate-300">•</span>
-            <button
-              onClick={handleSimulateAlert}
-              className="text-[11px] text-brand-600 hover:text-brand-700 font-semibold inline-flex items-center gap-1.5 transition-colors"
-              title="Simular chegada de novo pré-cadastro (som + toast + dados)"
-            >
-              <Sparkles className="w-3.5 h-3.5 text-brand-500" />
-              <span>Simular aviso</span>
+              <span>Testar som de notificação</span>
             </button>
           </div>
 

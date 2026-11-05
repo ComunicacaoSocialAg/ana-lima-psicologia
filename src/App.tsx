@@ -17,6 +17,7 @@ import { PatientModal } from "./components/patients/PatientModal";
 import { PatientIntakeView } from "./components/intake/PatientIntakeView";
 import { EventCalendarView } from "./components/calendar/EventCalendarView";
 import { AuthModal } from "./components/auth/AuthModal";
+import { AuthGate } from "./components/auth/AuthGate";
 import { IntakeToastAlert } from "./components/notifications/IntakeToastAlert";
 import { IntakeReviewModal } from "./components/intake/IntakeReviewModal";
 import { SystemUpdateAlert } from "./components/notifications/SystemUpdateAlert";
@@ -253,9 +254,11 @@ export function App() {
   }
 
   return (
-    <AppProvider>
-      <MainLayout />
-    </AppProvider>
+    <AuthGate>
+      <AppProvider>
+        <MainLayout />
+      </AppProvider>
+    </AuthGate>
   );
 }
 
