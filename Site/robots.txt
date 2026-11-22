@@ -4,6 +4,12 @@ Allow: /
 User-agent: Googlebot
 Allow: /
 
+User-agent: Bingbot
+Allow: /
+
+User-agent: GPTBot
+Allow: /
+
 User-agent: OAI-SearchBot
 Allow: /
 
@@ -16,7 +22,14 @@ Allow: /
 User-agent: ClaudeBot
 Allow: /
 
+User-agent: anthropic-ai
+Allow: /
+
+User-agent: Google-Extended
+Allow: /
+
 User-agent: Applebot-Extended
 Allow: /
 
 Sitemap: https://analimapsicologia.com.br/sitemap.xml
+# LLMs Knowledge Base: https://analimapsicologia.com.br/llms.txt

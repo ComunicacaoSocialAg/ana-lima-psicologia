@@ -848,7 +848,7 @@
         <div class="footer-col">
           <h4>Contato Direto</h4>
           <p><a href="https://wa.me/5531992949211" target="_blank" rel="noopener noreferrer">WhatsApp: (31) 99294-9211</a></p>
-          <p><a href="https://www.instagram.com/anaplima.psico/" target="_blank" rel="noopener noreferrer">Instagram: @anaplima.psico</a></p>
+          <p><a href="https://www.instagram.com/analima.psicologia/" target="_blank" rel="noopener noreferrer">Instagram: @analima.psicologia</a></p>
           <p><a href="mailto:analima.psicopc@gmail.com">analima.psicopc@gmail.com</a></p>
         </div>
       </div>
@@ -1014,7 +1014,7 @@
         });
 
         featuredContainer.innerHTML = `
-          <a href="/blog/${featured.slug}" class="featured-card">
+          <a href="/blog/${encodeURIComponent(featured.slug || featured.id)}" class="featured-card">
             <div class="featured-img-wrap">
               <img src="${featured.coverImageUrl || '/ana-lima-portrait.webp'}" alt="${featured.title}" class="featured-img" style="object-position: ${featured.coverImagePosition || 'top'};" loading="eager" />
             </div>
@@ -1051,7 +1051,7 @@
         });
 
         return `
-          <a href="/blog/${p.slug}" class="post-card">
+          <a href="/blog/${encodeURIComponent(p.slug || p.id)}" class="post-card">
             <div class="post-card-img-wrap">
               <img src="${p.coverImageUrl || '/ana-lima-portrait.webp'}" alt="${p.title}" class="post-card-img" style="object-position: ${p.coverImagePosition || 'top'};" loading="lazy" />
             </div>

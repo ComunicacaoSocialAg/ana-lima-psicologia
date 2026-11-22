@@ -36,23 +36,27 @@
   <link rel="icon" type="image/png" href="ana%20lima%20favcom.png?v=10" />
   <link rel="apple-touch-icon" href="ana%20lima%20favcom.png?v=10" />
   <link rel="canonical" href="https://analimapsicologia.com.br/" />
-  <link rel="help" type="text/plain" href="llms.txt" title="AI & LLM Knowledge Base (GEO)" />
+  <link rel="help" type="text/plain" href="https://analimapsicologia.com.br/llms.txt" title="AI & LLM Knowledge Base (GEO)" />
 
   <!-- Open Graph / WhatsApp / Instagram / LinkedIn Rich Preview -->
   <meta property="og:type" content="website" />
   <meta property="og:locale" content="pt_BR" />
   <meta property="og:site_name" content="Ana Lima • Psicóloga Clínica (CRP 04/60205)" />
+  <meta property="og:url" content="https://analimapsicologia.com.br/" />
   <meta property="og:title" content="A clareza sobre quem você é abre espaço para o que você pode ser. | Ana Lima Psicóloga" />
   <meta property="og:description" content="Espaço de escuta qualificada em Poços de Caldas/MG e Online. Psicoterapia Clínica fundamentada na Psicologia Histórico-Cultural e Desenvolvimento Humano." />
-  <meta property="og:image" content="ana%20lima1.png?v=2" />
-  <meta property="og:image:alt" content="Retrato da Psicóloga Clínica Ana Lima (CRP 04/60205) em seu consultório" />
-  <meta property="og:video" content="ana-paula-de-lima-hero-h264.mp4" />
+  <meta property="og:image" content="https://analimapsicologia.com.br/og-ana-lima.jpg" />
+  <meta property="og:image:type" content="image/jpeg" />
+  <meta property="og:image:width" content="1200" />
+  <meta property="og:image:height" content="630" />
+  <meta property="og:image:alt" content="Ana Lima • Psicóloga Clínica (CRP 04/60205) — Abordagem Histórico-Cultural" />
+  <meta property="og:video" content="https://analimapsicologia.com.br/ana-paula-de-lima-hero-h264.mp4" />
 
   <!-- Twitter / X Card -->
   <meta name="twitter:card" content="summary_large_image" />
   <meta name="twitter:title" content="Ana Lima • Psicóloga Clínica | Abordagem Histórico-Cultural" />
   <meta name="twitter:description" content="A clareza sobre quem você é abre espaço para o que você pode ser. Psicoterapia clínica presencial em Poços de Caldas e online." />
-  <meta name="twitter:image" content="ana%20lima1.png?v=2" />
+  <meta name="twitter:image" content="https://analimapsicologia.com.br/og-ana-lima.jpg" />
 
   <!-- Preload Critical LCP Hero Asset -->
   <link rel="preload" as="image" href="hero-poster.webp" fetchpriority="high" />
@@ -74,12 +78,25 @@
         "alternateName": "Consultório de Psicologia Ana Paula de Lima",
         "description": "Psicoterapia clínica individual fundamentada na Psicologia Histórico-Cultural e Desenvolvimento Humano. Atendimento presencial em Poços de Caldas/MG e atendimento online por videochamada criptografada para todo o Brasil e brasileiros no exterior.",
         "url": "https://analimapsicologia.com.br/",
-        "image": "https://analimapsicologia.com.br/ana%20lima1.png",
+        "image": "https://analimapsicologia.com.br/og-ana-lima.jpg",
         "logo": "https://analimapsicologia.com.br/Ana%20Lima.png",
         "telephone": "+55-31-99294-9211",
         "email": "analima.psicopc@gmail.com",
         "priceRange": "$$",
         "medicalSpecialty": "Clinical Psychology",
+        "sameAs": [
+          "https://www.instagram.com/analima.psicologia/"
+        ],
+        "contactPoint": [
+          {
+            "@type": "ContactPoint",
+            "contactType": "Agendamento de Consultas",
+            "telephone": "+55-31-99294-9211",
+            "email": "analima.psicopc@gmail.com",
+            "availableLanguage": ["Portuguese"],
+            "areaServed": ["BR", "Worldwide"]
+          }
+        ],
         "address": {
           "@type": "PostalAddress",
           "addressLocality": "Poços de Caldas",
@@ -112,9 +129,10 @@
         "name": "Ana Paula de Lima",
         "alternateName": "Ana Lima",
         "jobTitle": "Psicóloga Clínica",
-        "image": "https://analimapsicologia.com.br/ana%20lima1.png",
+        "url": "https://analimapsicologia.com.br/sobre",
+        "image": "https://analimapsicologia.com.br/ana-lima-portrait.webp",
         "sameAs": [
-          "https://www.instagram.com/anaplima.psico/"
+          "https://www.instagram.com/analima.psicologia/"
         ],
         "worksFor": { "@id": "https://analimapsicologia.com.br/#clinic" },
         "hasCredential": {
@@ -217,14 +235,31 @@
         ]
       },
       {
+        "@type": "WebSite",
+        "@id": "https://analimapsicologia.com.br/#website",
+        "url": "https://analimapsicologia.com.br/",
+        "name": "Ana Lima • Psicóloga Clínica (CRP 04/60205)",
+        "inLanguage": "pt-BR",
+        "publisher": { "@id": "https://analimapsicologia.com.br/#clinic" }
+      },
+      {
         "@type": "WebPage",
         "@id": "https://analimapsicologia.com.br/#webpage",
         "url": "https://analimapsicologia.com.br/",
         "name": "Ana Lima • Psicóloga Clínica | Psicoterapia Histórico-Cultural",
+        "inLanguage": "pt-BR",
+        "isPartOf": { "@id": "https://analimapsicologia.com.br/#website" },
+        "about": { "@id": "https://analimapsicologia.com.br/#clinic" },
         "speakable": {
           "@type": "SpeakableSpecification",
           "cssSelector": ["#hero-title", "#hero-subtitle", "#abordagem-sintese", "#faq-section"]
         }
+      },
+      {
+        "@type": "BreadcrumbList",
+        "itemListElement": [
+          { "@type": "ListItem", "position": 1, "name": "Início", "item": "https://analimapsicologia.com.br/" }
+        ]
       }
     ]
   }
@@ -1414,6 +1449,7 @@
       margin-bottom: 0.5rem;
     }
 
+    .footer-col h3,
     .footer-col h4 {
       font-size: 0.68rem;
       font-weight: 600;
@@ -1459,6 +1495,35 @@
       gap: 16px;
       font-size: 0.78rem;
       color: var(--text-basalt-muted);
+    }
+
+    .footer-credit {
+      max-width: 1360px;
+      margin: 14px auto 0;
+      display: flex;
+      justify-content: center;
+    }
+
+    .footer-credit a {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      font-size: 0.7rem;
+      letter-spacing: 0.04em;
+      color: var(--text-basalt-muted);
+      text-decoration: none;
+      opacity: 0.8;
+      transition: opacity 0.3s ease;
+    }
+
+    .footer-credit a:hover {
+      opacity: 1;
+    }
+
+    .footer-credit img {
+      height: 14px;
+      width: auto;
+      display: block;
     }
 
     /* ==========================================================================
@@ -2847,7 +2912,7 @@
             <div>
               <h3>Repetição de dinâmicas relacionais</h3>
               <p>
-                A constatação de que os mesmos impasses e frustrações reaparecem em vínculos diferentes, sem que a origem disso esteja clara.
+                A constatação de que os mesmos impasses e frustrações reaparecem em vínculos diferentes, sem que a origem disso esteja clara. <a href="/blog/por-que-repetimos-dinamicas-relacionais" style="color:var(--accent-terracotta);font-weight:500;text-decoration:underline;text-underline-offset:3px;">Leia sobre vínculos no Caderno Clínico &rarr;</a>
               </p>
             </div>
           </article>
@@ -2857,7 +2922,7 @@
             <div>
               <h3>Ansiedade e sobrecarga</h3>
               <p>
-                A necessidade de compreender as raízes do estresse e da angústia tomando como ponto de partida sua realidade social e concreta para identificar recursos pessoais e mudanças necessárias no modo de vida para que esta seja mais saudável.
+                A necessidade de compreender as raízes do estresse e da angústia tomando como ponto de partida sua realidade social e concreta para identificar recursos pessoais e mudanças necessárias no modo de vida para que esta seja mais saudável. <a href="/blog/ansiedade-compreensao-historico-cultural" style="color:var(--accent-terracotta);font-weight:500;text-decoration:underline;text-underline-offset:3px;">Leia sobre ansiedade na abordagem histórico-cultural &rarr;</a>
               </p>
             </div>
           </article>
@@ -2922,6 +2987,9 @@
               <li>Especialização em Psicologia Clínica</li>
               <li>Membro ativo do Conselho Regional de Psicologia (CRP 04/60205)</li>
             </ul>
+            <p style="margin-top:14px;font-size:0.9rem;">
+              <a href="/sobre" style="color:var(--accent-terracotta);font-weight:600;text-decoration:underline;text-underline-offset:3px;">Conhecer trajetória e formação completa &rarr;</a>
+            </p>
           </div>
         </div>
       </div>
@@ -3078,14 +3146,14 @@
             </svg>
           </a>
           <a
-            href="https://www.instagram.com/anaplima.psico/"
+            href="https://www.instagram.com/analima.psicologia/"
             target="_blank"
             rel="noopener noreferrer"
             class="btn-closing-instagram"
             style="display:inline-flex;align-items:center;gap:8px;padding:14px 24px;border-radius:9999px;border:1px solid var(--anchor-moss);color:var(--anchor-moss);font-weight:500;font-size:0.95rem;text-decoration:none;transition:all 0.25s ease;"
           >
             <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-            <span>Instagram: @anaplima.psico</span>
+            <span>Instagram: @analima.psicologia</span>
           </a>
         </div>
       </div>
@@ -3106,23 +3174,28 @@
       </div>
 
       <div class="footer-col">
-        <h4>Modalidades &amp; Conteúdo</h4>
+        <h3>Modalidades &amp; Conteúdo</h3>
         <p><strong>Atendimento Presencial:</strong> Poços de Caldas • Minas Gerais</p>
         <p><strong>Atendimento Online:</strong> Território Nacional e Exterior (Videochamada Segura)</p>
-        <p style="margin-top:10px;"><a href="/blog" style="color:var(--accent-terracotta);font-weight:600;display:inline-flex;align-items:center;gap:4px;">Caderno Clínico &amp; Blog &rarr;</a></p>
+        <p style="margin-top:10px;display:flex;flex-wrap:wrap;gap:12px;">
+          <a href="/blog" style="color:var(--accent-terracotta);font-weight:600;">Caderno Clínico &amp; Blog &rarr;</a>
+          <a href="/sobre">Sobre Ana Lima</a>
+          <a href="/contato">Agendamento &amp; Contato</a>
+          <a href="/privacidade">Privacidade &amp; LGPD</a>
+        </p>
       </div>
 
       <div class="footer-col">
-        <h4>Contato Direto &amp; Ética</h4>
+        <h3>Contato Direto &amp; Ética</h3>
         <p>
           <a href="https://wa.me/5531992949211" target="_blank" rel="noopener noreferrer">
             WhatsApp: (31) 99294-9211
           </a>
         </p>
         <p>
-          <a href="https://www.instagram.com/anaplima.psico/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;">
+          <a href="https://www.instagram.com/analima.psicologia/" target="_blank" rel="noopener noreferrer" style="display:inline-flex;align-items:center;gap:6px;">
             <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><rect x="2" y="2" width="20" height="20" rx="5" ry="5"/><path d="M16 11.37A4 4 0 1 1 12.63 8 4 4 0 0 1 16 11.37z"/><line x1="17.5" y1="6.5" x2="17.51" y2="6.5"/></svg>
-            Instagram: @anaplima.psico
+            Instagram: @analima.psicologia
           </a>
         </p>
         <p>
@@ -3148,6 +3221,13 @@
         <button type="button" class="footer-legal-btn" id="openEthicsModalBtn">Sigilo Clínico &amp; Código de Ética (CFP)</button>
       </div>
       <span>Em atenção caso necessite de apoio emergencial imediato, ligue 188 (CVV).</span>
+    </div>
+
+    <div class="footer-credit">
+      <a href="https://comunicacaosocialag.com.br/" target="_blank" rel="noopener noreferrer" aria-label="Produzido por CSAg, Comunicação Social Ag">
+        <span>Produzido por CSAg</span>
+        <img src="marca/csag-logo.png" alt="Comunicação Social Ag" width="28" height="14" loading="lazy" />
+      </a>
     </div>
   </footer>
 

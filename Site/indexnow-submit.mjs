@@ -3,31 +3,51 @@
 /**
  * Script de Notificação Automática do IndexNow para o site da Psicóloga Ana Lima
  * Domínio: analimapsicologia.com.br
+ * - Se passar URLs como argumento, envia essas URLs.
+ * - Caso contrário, lê dinamicamente todas as URLs publicadas em /sitemap.xml.
  */
 
 const KEY = 'd921f9510cc174539d30ece9bbc5aa9a';
 const HOST = 'analimapsicologia.com.br';
 const KEY_LOCATION = `https://${HOST}/${KEY}.txt`;
 
-const DEFAULT_URLS = [
+const FALLBACK_URLS = [
   `https://${HOST}/`,
+  `https://${HOST}/sobre`,
+  `https://${HOST}/contato`,
+  `https://${HOST}/privacidade`,
   `https://${HOST}/blog`,
+  `https://${HOST}/blog/como-funciona-a-psicoterapia-de-abordagem-historico-cultural`,
   `https://${HOST}/blog/ansiedade-compreensao-historico-cultural`,
   `https://${HOST}/blog/por-que-repetimos-dinamicas-relacionais`
 ];
 
-// URLs passadas por argumento CLI (se houver) ou lista padrão
-const customUrls = process.argv.slice(2).filter((u) => u.startsWith('http'));
-const urlList = customUrls.length > 0 ? customUrls : DEFAULT_URLS;
+async function resolveUrls() {
+  const customUrls = process.argv.slice(2).filter((u) => u.startsWith('http'));
+  if (customUrls.length > 0) return customUrls;
 
-const payload = {
-  host: HOST,
-  key: KEY,
-  keyLocation: KEY_LOCATION,
-  urlList
-};
+  try {
+    const res = await fetch(`https://${HOST}/sitemap.xml`, { signal: AbortSignal.timeout(4000) });
+    if (res.ok) {
+      const xml = await res.text();
+      const matches = [...xml.matchAll(/<loc>(https:\/\/[^<]+)<\/loc>/g)].map((m) => m[1].trim());
+      if (matches.length > 0) return [...new Set(matches)];
+    }
+  } catch {
+    // fallback
+  }
+  return FALLBACK_URLS;
+}
 
 async function submitIndexNow() {
+  const urlList = await resolveUrls();
+  const payload = {
+    host: HOST,
+    key: KEY,
+    keyLocation: KEY_LOCATION,
+    urlList
+  };
+
   console.log(`📡 Enviando ${urlList.length} URL(s) para o IndexNow...`);
   urlList.forEach((url) => console.log(` - ${url}`));
 

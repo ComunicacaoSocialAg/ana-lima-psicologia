@@ -1,0 +1,320 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="robots" content="noindex,nofollow">
+  <title>Ana Lima — Manual de marca</title>
+  <link rel="icon" href="./ana%20lima%20favcom.svg">
+  <style>
+    @font-face{font-family:Cormorant;src:url('./marca/cormorant-500-italic.woff2') format('woff2');font-weight:500;font-style:italic;font-display:swap}
+    @font-face{font-family:Jakarta;src:url('./marca/jakarta-400.woff2') format('woff2');font-weight:400;font-display:swap}
+    @font-face{font-family:Jakarta;src:url('./marca/jakarta-600.woff2') format('woff2');font-weight:600;font-display:swap}
+    :root{--linho:#f7f5f0;--areia:#ede8de;--musgo:#1c2b22;--oliva:#3f4a3d;--basalto:#454944;--terra:#a85a3f;--linha:#c9c8bb;--display:Cormorant,Georgia,serif}
+    *,*::before,*::after{box-sizing:border-box}
+    html{scroll-behavior:smooth}
+    body{margin:0;background:var(--linho);color:var(--musgo);font-family:Jakarta,Arial,sans-serif;font-size:1rem;line-height:1.6}
+    img{display:block;width:100%;height:auto}
+    a{color:inherit;text-underline-offset:.23em}
+    button{font:inherit;color:inherit;cursor:pointer}
+    :focus-visible{outline:2px solid var(--terra);outline-offset:5px}
+    ::selection{background:var(--oliva);color:var(--linho)}
+    .wrap{width:min(100% - clamp(2rem,8vw,9rem),82rem);margin-inline:auto}
+    .skip{position:fixed;top:.5rem;left:.5rem;z-index:5;transform:translateY(-180%);background:var(--linho);padding:.5rem 1rem}
+    .skip:focus{transform:none}
+    .bar{background:var(--musgo);color:var(--linho)}
+    .bar .wrap{min-height:4.25rem;display:flex;align-items:center;justify-content:space-between;gap:1rem}
+    .brand{font-weight:600;text-decoration:none;white-space:nowrap}
+    .bar nav{display:flex;flex-wrap:wrap;gap:.35rem clamp(.8rem,3vw,2.1rem);font-size:.81rem}
+    .bar nav a{text-decoration:none;color:#e1e4d9}
+    .bar nav a:hover{text-decoration:underline}
+    .hero{isolation:isolate;position:relative;overflow:hidden;background:var(--oliva);color:var(--linho)}
+    .hero .wrap{min-height:clamp(29rem,52vw,47rem);padding-block:clamp(5rem,10vw,10rem) clamp(3.5rem,6vw,7rem);display:flex;align-items:center}
+    .hero-copy{position:relative;z-index:1;max-width:45rem}
+    h1,h2,h3,.type-display{font-family:var(--display);font-weight:500;font-style:italic;letter-spacing:-.025em}
+    h1{font-size:clamp(4.8rem,11vw,10.5rem);line-height:.8;margin:0 0 2rem}
+    h2{font-size:clamp(3.4rem,7.3vw,6rem);line-height:.87;margin:0}
+    h3{font-size:clamp(2rem,3.5vw,3.05rem);line-height:1;margin:0 0 .5rem}
+    p{margin:.25rem 0 .9rem}
+    .hero-copy p{max-width:25rem;color:#e0e4d9}
+    .hero-flower{pointer-events:none;position:absolute;z-index:-1;right:-5%;top:-6%;width:min(55vw,51rem);opacity:.32}
+    .hero-seeds{pointer-events:none;position:absolute;z-index:-1;right:34%;top:12%;width:min(18vw,16rem);opacity:.60}
+    .actions{display:flex;flex-wrap:wrap;gap:.75rem;margin-top:1.55rem}
+    .cta{display:inline-flex;align-items:center;justify-content:center;min-height:2.75rem;padding:.56rem 1.05rem;border:1px solid currentColor;font-size:.84rem;font-weight:600;text-decoration:none;background:transparent;text-align:center}
+    .cta:hover{background:var(--areia);color:var(--musgo);border-color:var(--musgo)}
+    .cta.primary{background:var(--musgo);border-color:var(--musgo);color:var(--linho)}
+    .hero .cta.primary{background:var(--linho);color:var(--musgo);border-color:var(--linho)}
+    .cta.primary:hover{background:var(--oliva);color:var(--linho);border-color:var(--oliva)}
+    .hero .cta.primary:hover{background:var(--areia);color:var(--musgo);border-color:var(--areia)}
+    .section{padding-block:clamp(3.7rem,8vw,7rem)}
+    .section-head{display:grid;grid-template-columns:1.23fr 1fr;gap:1.25rem 3rem;align-items:end;padding-bottom:clamp(1.65rem,4vw,3rem)}
+    .section-head p{max-width:39ch;margin:0;color:var(--basalto)}
+    .social{border-bottom:1px solid var(--linha)}
+    .posts{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:clamp(.9rem,2.7vw,2.5rem)}
+    figure{margin:0}
+    .art{width:100%;aspect-ratio:4/5;background:var(--areia)}
+    figcaption{padding:.95rem 0 .1rem}
+    figcaption p,.detail{font-size:.85rem;color:var(--basalto);margin:0}
+    .carousel-controls{display:flex;align-items:center;gap:.55rem;margin-top:.7rem;font-size:.82rem}
+    .carousel-controls button{min-width:2.75rem;min-height:2.75rem;padding:.35rem .5rem;background:transparent;border:1px solid var(--linha)}
+    .carousel-controls button:hover:not(:disabled){border-color:var(--musgo);background:var(--areia)}
+    .carousel-controls button:disabled{opacity:.45;cursor:default}
+    .carousel-controls output{min-width:3rem;text-align:center;font-variant-numeric:tabular-nums}
+    .carousel-controls svg{display:block;margin:auto}
+    .print{background:var(--areia)}
+    .print-grid{display:grid;grid-template-columns:1.6fr .85fr;gap:clamp(1.7rem,5vw,5rem);align-items:start}
+    .card-pair{display:grid;grid-template-columns:1fr 1fr;gap:.75rem}
+    .card-pair img{aspect-ratio:9/5}
+    .card-pair figcaption{font-size:.78rem;color:var(--basalto)}
+    .paper{max-width:20rem;background:white;outline:1px solid #d8d4ca}
+    .print h3{margin-top:1.6rem}
+    .print .actions{margin-top:.9rem}
+    .tools{background:var(--musgo);color:var(--linho)}
+    .tools .section-head p,.tools .detail{color:#d6ded2}
+    .tool-grid{display:grid;grid-template-columns:1fr 1fr;gap:clamp(2rem,5vw,5rem)}
+    .tool-grid article{border-top:1px solid #748477;padding-top:1.25rem}
+    .tool-grid ol{padding-left:1.3rem;margin:.85rem 0}
+    .tool-grid li{margin:.3rem 0}
+    .tools .cta:hover{border-color:var(--linho)}
+    details{margin-top:1rem;border-top:1px solid #748477;padding-top:.7rem}
+    summary{cursor:pointer;min-height:2.75rem;padding:.4rem 0}
+    pre{font:inherit;white-space:pre-wrap;overflow-wrap:anywhere;color:#dce5d9;font-size:.84rem}
+    .swatches{display:grid;grid-template-columns:repeat(6,minmax(0,1fr));gap:.85rem;margin-bottom:2.75rem}
+    .swatches button{text-align:left;border:0;background:transparent;padding:0;font-size:.82rem}
+    .swatches strong,.swatches small{display:block}
+    .swatches small{font-size:.75rem;color:var(--basalto)}
+    .chip{display:block;background:var(--ink);height:clamp(3.8rem,10vw,7rem);border:1px solid #1c2b2238;margin-bottom:.4rem}
+    .type-grid{display:grid;grid-template-columns:1.1fr 1fr;gap:1.5rem 3rem;align-items:end;border-block:1px solid var(--linha);padding-block:1.3rem;margin-bottom:2rem}
+    .type-display{font-size:clamp(2.7rem,6vw,5.25rem);line-height:.9;margin:.45rem 0 .9rem}
+    .marks{display:grid;grid-template-columns:1.55fr .7fr .9fr;gap:1rem;margin-top:2rem}
+    .marks a{display:grid;gap:.65rem;align-content:start;text-decoration:none;font-size:.85rem}
+    .marks a:hover span{text-decoration:underline}
+    .specimen{display:grid;place-items:center;background:var(--areia);height:clamp(6.8rem,16vw,12rem);padding:1rem}
+    .specimen img{height:100%;max-height:100%;object-fit:contain}
+    .foot{border-top:1px solid var(--linha);padding:1.4rem 0;font-size:.8rem;color:var(--basalto)}
+    .foot .wrap{display:flex;justify-content:space-between;gap:.5rem 2rem;flex-wrap:wrap}
+    .visually-hidden{position:absolute;width:1px;height:1px;padding:0;margin:-1px;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+    .notice{position:fixed;bottom:1rem;right:1rem;background:var(--musgo);color:var(--linho);padding:.65rem .9rem;font-size:.85rem;z-index:3;border:1px solid #748477}
+    .notice:empty{display:none}
+    @media(max-width:760px){
+      .bar .wrap{min-height:auto;padding-block:.7rem;align-items:flex-start}
+      .bar nav{justify-content:flex-end}
+      .hero-flower{width:72vw;right:-24%;top:2%;opacity:.23}
+      .hero-seeds{right:10%;top:12%;width:31vw;opacity:.33}
+      .section-head,.tool-grid,.print-grid{grid-template-columns:1fr}
+      .posts{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .swatches{grid-template-columns:repeat(3,minmax(0,1fr))}
+    }
+    @media(max-width:480px){
+      .bar .wrap{display:grid}
+      .bar nav{justify-content:flex-start}
+      .posts{grid-template-columns:1fr;gap:1.7rem}
+      .card-pair,.type-grid{grid-template-columns:1fr}
+      .marks{grid-template-columns:repeat(2,minmax(0,1fr))}
+      .marks a:first-child{grid-column:1/-1}
+      .hero .wrap{min-height:30rem}
+    }
+    @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+  </style>
+</head>
+<body>
+  <a class="skip" href="#conteudo">Ir para o conteúdo</a>
+  <header class="bar">
+    <div class="wrap">
+      <a href="#conteudo" class="brand">Ana Lima · Manual de marca</a>
+      <nav aria-label="Seções do manual">
+        <a href="#publicacoes">Publicações</a><a href="#impressos">Impressos</a><a href="#producao">Canva e IA</a><a href="#identidade">Identidade</a>
+      </nav>
+    </div>
+  </header>
+  <main id="conteudo">
+    <section class="hero" aria-labelledby="titulo">
+      <img class="hero-flower" src="./marca/vetores/flor-linho.svg" width="113" height="225" alt="">
+      <img class="hero-seeds" src="./marca/vetores/sementes-linho.svg" width="214" height="76" alt="">
+      <div class="wrap">
+        <div class="hero-copy">
+          <h1 id="titulo">O que nos<br>atravessa.</h1>
+          <p>A identidade de Ana Lima, da flor do logotipo às peças que a psicóloga pode editar e usar no dia a dia.</p>
+          <div class="actions"><a href="#publicacoes" class="cta primary">Ver as peças</a><a href="./marca/Ana-Lima-Kit-de-Marca.zip" class="cta" download>Baixar o kit completo</a></div>
+        </div>
+      </div>
+    </section>
+
+    <section id="publicacoes" class="section social">
+      <div class="wrap">
+        <div class="section-head"><h2>Publicações</h2><p>Três composições para o feed. Use a reflexão para abrir uma conversa, o carrossel para desenvolver um tema e o retrato para apresentar a Ana e seu trabalho.</p></div>
+        <div class="posts">
+          <figure>
+            <img class="art" src="./marca/01-reflexao.webp" width="1080" height="1350" alt="Post verde-oliva com uma flor ampliada e o texto O que você aprendeu a chamar de força?" loading="lazy">
+            <figcaption><h3>Reflexão</h3><p>Uma pergunta em até três linhas.</p></figcaption>
+          </figure>
+          <figure>
+            <img id="carousel-image" class="art" src="./marca/02-carrossel-capa.webp" width="1080" height="1350" alt="Capa. Quando dizer não pesa? Uma conversa sobre limites e convivência." loading="lazy">
+            <figcaption>
+              <h3>Carrossel</h3><p id="carousel-caption">Capa</p>
+              <div class="carousel-controls" aria-label="Navegação do carrossel">
+                <button id="prev" type="button" aria-label="Lâmina anterior" disabled><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M15 9H3m0 0 5-5M3 9l5 5" fill="none" stroke="currentColor" stroke-width="1.35"/></svg></button>
+                <output id="count" aria-live="polite">1 / 5</output>
+                <button id="next" type="button" aria-label="Próxima lâmina"><svg width="18" height="18" viewBox="0 0 18 18" aria-hidden="true"><path d="M3 9h12m0 0-5-5m5 5-5 5" fill="none" stroke="currentColor" stroke-width="1.35"/></svg></button>
+              </div>
+            </figcaption>
+          </figure>
+          <figure>
+            <img class="art" src="./marca/07-retrato.webp" width="1080" height="1350" alt="Retrato de Ana Paula de Lima, psicóloga, ao lado de uma faixa oliva com o dente-de-leão da marca." loading="lazy">
+            <figcaption><h3>Retrato</h3><p>Foto real, nome e área de atuação.</p></figcaption>
+          </figure>
+        </div>
+        <div class="actions"><a class="cta primary" href="./marca/Ana-Lima-Posts-Canva.pptx" download>Baixar posts editáveis</a></div>
+        <p class="detail">Sete artes em 1080 × 1350 px. Os PNGs para publicação estão no kit completo.</p>
+      </div>
+    </section>
+
+    <section id="impressos" class="section print">
+      <div class="wrap">
+        <div class="section-head"><h2>Impressos</h2><p>O cartão leva a flor até a borda. Na papelaria, a assinatura aparece em escala menor para dar espaço ao texto do documento.</p></div>
+        <div class="print-grid">
+          <article>
+            <div class="card-pair">
+              <figure><img src="./marca/cartao-frente.webp" width="900" height="500" alt="Frente em verde-oliva com assinatura Ana Lima e recorte ampliado do dente-de-leão." loading="lazy"><figcaption>Frente</figcaption></figure>
+              <figure><img src="./marca/cartao-verso.webp" width="900" height="500" alt="Verso em linho com nome completo, identificação profissional, contatos e QR para o site." loading="lazy"><figcaption>Verso</figcaption></figure>
+            </div>
+            <h3>Cartão de visita</h3>
+            <p class="detail">90 × 50 mm. PDF frente e verso com sangria de 3 mm.</p>
+            <div class="actions"><a class="cta primary" href="./marca/Ana-Lima-Cartao-Impressao.pdf" download>Baixar PDF de impressão</a><a class="cta" href="./marca/Ana-Lima-Cartao-Canva.pptx" download>Baixar cartão editável</a></div>
+          </article>
+          <article>
+            <img class="paper" src="./marca/papelaria-a4.webp" width="840" height="1188" alt="Papel timbrado A4 com assinatura no cabeçalho e contatos no rodapé." loading="lazy">
+            <h3>Papel timbrado</h3>
+            <p class="detail">A4, 210 × 297 mm. Área central livre para o texto.</p>
+            <div class="actions"><a class="cta" href="./marca/Ana-Lima-Papelaria-A4.pdf" download>Baixar papel timbrado</a><a class="cta" href="./marca/Ana-Lima-Papelaria-Canva.pptx" download>Baixar versão editável</a></div>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="producao" class="section tools">
+      <div class="wrap">
+        <div class="section-head"><h2>Como usar o kit</h2><p>O Canva recebe os modelos editáveis. O guia de IA organiza a redação nos campos de cada peça.</p></div>
+        <div class="tool-grid">
+          <article>
+            <h3>Canva</h3>
+            <ol><li>Importe o arquivo PPTX na página inicial do Canva.</li><li>Confira fontes, quebras de linha e formato da página com a prévia acima.</li><li>Trave a assinatura e os elementos fixos na sua cópia mestre. Duplique uma página para editar textos e trocar a foto.</li></ol>
+            <p class="detail">Nos posts, exporte em PNG. Para a gráfica, use o PDF de impressão do cartão.</p>
+            <div class="actions"><a class="cta" href="./marca/Ana-Lima-Posts-Canva.pptx" download>Baixar modelos de posts</a><a class="cta" href="https://www.canva.com/pt_br/help/powerpoint-import/">Ajuda do Canva</a></div>
+          </article>
+          <article>
+            <h3>ChatGPT e Gemini</h3>
+            <p>Cole o guia nas instruções do projeto ou envie junto com o tema. Peça os campos do modelo escolhido e revise o texto antes de publicar.</p>
+            <div class="actions"><button type="button" class="cta" id="copy-ai">Copiar guia de IA</button><a class="cta" href="./marca/Ana-Lima-Guia-IA.md" download>Baixar guia de IA</a></div>
+            <details><summary>Ver instruções completas</summary><pre id="ai-guide"># Guia de redação · Ana Lima Psicologia
+
+Redija em português brasileiro para Ana Paula de Lima, psicóloga, CRP 04/60205. Sua abordagem é a Psicologia Histórico-Cultural. Atendimento presencial em Poços de Caldas e online.
+
+## Briefing
+
+Peça ou use o tema, o formato escolhido e o objetivo da publicação. Quando faltar uma informação clínica, institucional ou bibliográfica, sinalize a pendência para revisão da Ana. Use apenas situações hipotéticas ou gerais e preserve a privacidade de pacientes.
+
+## Voz
+
+Escreva como numa conversa calma e adulta. Comece por uma situação reconhecível, faça perguntas específicas e considere relações, condições de vida e história. Prefira «em que situações isso acontece?» a rótulos sobre quem lê. Evite frases motivacionais genéricas, diagnósticos, garantias, depoimentos de pacientes, sensacionalismo e citações sem fonte. Qualquer afirmação clínica nova pede fonte primária e revisão da Ana.
+
+## Saída para o Canva
+
+Entregue o texto separado por campo. Respeite a quantidade de linhas indicada. Conte os caracteres com espaços e trate os limites como ponto de partida. Confira a quebra real no modelo.
+
+- Reflexão. Três linhas de título, até 18 caracteres por linha. Exemplo de ritmo. «O que você / aprendeu a / chamar de força?»
+- Carrossel, lâmina 1. Três linhas de título, até 14 caracteres na primeira, 8 na segunda e 10 na terceira. Apoio em duas linhas de até 26 caracteres cada.
+- Carrossel, lâmina 2. Título em uma linha de até 16 caracteres. Situação cotidiana em duas linhas de até 32 caracteres. Fecho curto em duas linhas de até 17 caracteres.
+- Carrossel, lâmina 3. Título em duas linhas de até 20 caracteres. Desenvolvimento em três linhas de até 34 caracteres.
+- Carrossel, lâmina 4. Título em uma linha de até 20 caracteres. Três perguntas. Cada pergunta pode ter até duas linhas de 28 caracteres.
+- Carrossel, lâmina 5. Título em três linhas de até 17 caracteres. Fecho em uma linha de até 35 caracteres.
+- Retrato. Título em uma linha de até 17 caracteres. Apoio em uma linha de até 34 caracteres. Use foto real aprovada pela Ana.
+
+Preserve os campos fixos de nome e identificação profissional. Entregue também uma legenda curta, um texto alternativo para cada arte e uma nota de revisão quando houver fatos ou fontes a confirmar. A legenda pode terminar com uma pergunta relacionada ao tema. A revisão final é da Ana.
+
+Referência profissional para revisão. https://site.cfp.org.br/wp-content/uploads/2022/06/SEI_CFP-0612475-Nota-Tecnica.pdf
+</pre></details>
+          </article>
+        </div>
+      </div>
+    </section>
+
+    <section id="identidade" class="section">
+      <div class="wrap">
+        <div class="section-head"><h2>Identidade</h2><p>O oliva assina a marca, o linho abre espaço para leitura e o terracota pontua palavras, linhas e detalhes. Clique numa cor para copiar o código.</p></div>
+        <div class="swatches">
+          <button type="button" data-copy="#F7F5F0"><span class="chip" style="--ink:#F7F5F0"></span><strong>Linho cru</strong><small>#F7F5F0</small></button>
+          <button type="button" data-copy="#EDE8DE"><span class="chip" style="--ink:#EDE8DE"></span><strong>Areia</strong><small>#EDE8DE</small></button>
+          <button type="button" data-copy="#3F4A3D"><span class="chip" style="--ink:#3F4A3D"></span><strong>Oliva</strong><small>#3F4A3D</small></button>
+          <button type="button" data-copy="#1C2B22"><span class="chip" style="--ink:#1C2B22"></span><strong>Musgo</strong><small>#1C2B22</small></button>
+          <button type="button" data-copy="#454944"><span class="chip" style="--ink:#454944"></span><strong>Basalto</strong><small>#454944</small></button>
+          <button type="button" data-copy="#A85A3F"><span class="chip" style="--ink:#A85A3F"></span><strong>Terracota</strong><small>#A85A3F</small></button>
+        </div>
+        <div class="type-grid">
+          <div><p class="type-display">O que nos atravessa.</p><p class="detail">Cormorant Garamond · títulos</p></div>
+          <div><p>Uma voz que pergunta, escuta e abre espaço para pensar.</p><p class="detail">Plus Jakarta Sans · texto corrido e identificação<br>Corinthia · assinatura original em vetor</p></div>
+        </div>
+        <div class="marks">
+          <a href="./marca/vetores/logo-oliva.svg" download><div class="specimen"><img src="./marca/vetores/logo-oliva.svg" width="665" height="315" alt=""></div><span>Baixar logo completo</span></a>
+          <a href="./marca/vetores/flor-oliva.svg" download><div class="specimen"><img src="./marca/vetores/flor-oliva.svg" width="113" height="225" alt=""></div><span>Baixar flor e haste</span></a>
+          <a href="./marca/vetores/sementes-oliva.svg" download><div class="specimen"><img src="./marca/vetores/sementes-oliva.svg" width="214" height="76" alt=""></div><span>Baixar sementes</span></a>
+        </div>
+        <div class="actions"><a class="cta" href="./logos-ana-lima-svg.zip" download>Baixar as versões oficiais do logotipo</a></div>
+      </div>
+    </section>
+  </main>
+  <footer class="foot"><div class="wrap"><span>Ana Paula de Lima · Psicóloga · CRP 04/60205</span><a href="https://analimapsicologia.com.br/">analimapsicologia.com.br</a></div></footer>
+  <div id="notice" class="notice" role="status"></div>
+  <script>
+    const frames = [
+      ['02-carrossel-capa','Capa','Quando dizer não pesa? Uma conversa sobre limites e convivência.'],
+      ['03-carrossel-contexto','Situação','Uma cena comum. Você recebe um pedido quando seu dia já está cheio. Antes de olhar a agenda, diz sim.'],
+      ['04-carrossel-historia','Contexto','O que acontece quando você recusa? Vale olhar para o contexto. Como as pessoas à sua volta costumam reagir quando você diz não?'],
+      ['05-carrossel-perguntas','Perguntas','Antes de responder. Eu tenho tempo para isso? O que teria de adiar para aceitar? O que eu diria se pudesse pensar com calma?'],
+      ['06-carrossel-fecho','Fecho','Entre o pedido e a resposta, cabe uma pausa. Posso te responder depois?']
+    ];
+    const preview = document.querySelector('#carousel-image');
+    const previous = document.querySelector('#prev');
+    const next = document.querySelector('#next');
+    const caption = document.querySelector('#carousel-caption');
+    const count = document.querySelector('#count');
+    let active = 0;
+    function changeSlide(step){
+      const index = active + step;
+      if (index < 0 || index >= frames.length) return;
+      active = index;
+      const [slug,label,description] = frames[index];
+      preview.src = './marca/' + slug + '.webp';
+      preview.alt = label + '. ' + description;
+      caption.textContent = label;
+      count.textContent = (index + 1) + ' / ' + frames.length;
+      previous.disabled = index === 0;
+      next.disabled = index === frames.length - 1;
+      if (document.activeElement === previous && previous.disabled) next.focus();
+      if (document.activeElement === next && next.disabled) previous.focus();
+    }
+    previous.addEventListener('click',()=>changeSlide(-1));
+    next.addEventListener('click',()=>changeSlide(1));
+    const notice = document.querySelector('#notice');
+    let noticeTimer;
+    async function copy(value,success){
+      try {
+        await navigator.clipboard.writeText(value);
+        notice.textContent = success;
+      } catch {
+        notice.textContent = 'Selecione e copie o conteúdo manualmente.';
+      }
+      clearTimeout(noticeTimer);
+      noticeTimer = setTimeout(()=>{notice.textContent=''},3000);
+    }
+    document.querySelectorAll('[data-copy]').forEach(button=>{
+      button.addEventListener('click',()=>copy(button.dataset.copy,'Cor copiada: '+button.dataset.copy));
+    });
+    document.querySelector('#copy-ai').addEventListener('click',()=>{
+      const guide = document.querySelector('#ai-guide');
+      guide.parentElement.open = true;
+      copy(guide.textContent.trim(),'Guia copiado.');
+    });
+  </script>
+</body>
+</html>

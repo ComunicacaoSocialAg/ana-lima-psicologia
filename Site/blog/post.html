@@ -894,7 +894,7 @@
         <div class="footer-col">
           <h4>Contato Direto</h4>
           <p><a href="https://wa.me/5531992949211" target="_blank" rel="noopener noreferrer">WhatsApp: (31) 99294-9211</a></p>
-          <p><a href="https://www.instagram.com/anaplima.psico/" target="_blank" rel="noopener noreferrer">Instagram: @anaplima.psico</a></p>
+          <p><a href="https://www.instagram.com/analima.psicologia/" target="_blank" rel="noopener noreferrer">Instagram: @analima.psicologia</a></p>
           <p><a href="mailto:analima.psicopc@gmail.com">analima.psicopc@gmail.com</a></p>
         </div>
       </div>
@@ -922,14 +922,27 @@
     const app = initializeApp(firebaseConfig);
     const db = getFirestore(app);
 
+    function normalizeSlug(value) {
+      if (!value) return "";
+      try {
+        return decodeURIComponent(String(value))
+          .replace(/\.html$/i, "")
+          .trim()
+          .toLowerCase();
+      } catch {
+        return String(value).replace(/\.html$/i, "").trim().toLowerCase();
+      }
+    }
+
     // Extrai slug da URL (ou query string ?slug=...)
     function getSlugFromUrl() {
       const urlParams = new URLSearchParams(window.location.search);
-      if (urlParams.get("slug")) return urlParams.get("slug");
+      if (urlParams.get("slug")) return normalizeSlug(urlParams.get("slug"));
       
       const pathParts = window.location.pathname.split("/").filter(Boolean);
       if (pathParts.length >= 2 && pathParts[0] === "blog") {
-        return pathParts[1].replace(".html", "");
+        const segment = normalizeSlug(pathParts[1]);
+        if (segment && segment !== "post") return segment;
       }
       return "ansiedade-compreensao-historico-cultural";
     }
@@ -1027,35 +1040,44 @@
         return;
       }
 
-      // 1. Verifica cache local do navegador
+      // 1. Busca no Firestore apenas artigos publicados (obedece às firestore.rules sem exigir índice composto)
       try {
-        const raw = localStorage.getItem("ana_lima_blog_posts");
-        if (raw) {
-          const list = JSON.parse(raw);
-          if (Array.isArray(list)) {
-            post = list.find(p => p.slug === currentSlug && p.status === "published" && !deletedIds.includes(p.id) && !deletedIds.includes(p.slug));
+        const q = query(
+          collection(db, "blog_posts"),
+          where("status", "==", "published")
+        );
+        const snapshot = await getDocs(q);
+        for (const d of snapshot.docs) {
+          const data = { id: d.id, ...d.data() };
+          if (
+            (normalizeSlug(data.slug) === currentSlug || normalizeSlug(d.id) === currentSlug) &&
+            !deletedIds.includes(d.id) &&
+            !deletedIds.includes(data.slug)
+          ) {
+            post = data;
+            break;
           }
         }
-      } catch (e) {}
+      } catch (err) {
+        console.warn("Erro ao buscar artigo no Firestore, tentando contingência local:", err);
+      }
 
-      // 2. Se não achou local, busca no Firestore por slug único
+      // 2. Se não achou no Firestore, verifica cache local do navegador
       if (!post) {
         try {
-          const q = query(
-            collection(db, "blog_posts"),
-            where("slug", "==", currentSlug),
-            limit(1)
-          );
-          const snapshot = await getDocs(q);
-          if (!snapshot.empty) {
-            const data = snapshot.docs[0].data();
-            if (data.status === "published" && !deletedIds.includes(snapshot.docs[0].id) && !deletedIds.includes(data.slug)) {
-              post = data;
+          const raw = localStorage.getItem("ana_lima_blog_posts");
+          if (raw) {
+            const list = JSON.parse(raw);
+            if (Array.isArray(list)) {
+              post = list.find(p =>
+                p.status === "published" &&
+                (normalizeSlug(p.slug) === currentSlug || normalizeSlug(p.id) === currentSlug) &&
+                !deletedIds.includes(p.id) &&
+                !deletedIds.includes(p.slug)
+              );
             }
           }
-        } catch (err) {
-          console.warn("Utilizando artigo curado de contingência:", err);
-        }
+        } catch (e) {}
       }
 
       if (!post && !deletedIds.includes(currentSlug)) {
@@ -1095,20 +1117,27 @@
     }
 
     function renderArticle(post) {
-      const fullUrl = `https://analimapsicologia.com.br/blog/${post.slug}`;
+      const resolvedSlug = post.slug || post.id || currentSlug;
+      const fullUrl = `https://analimapsicologia.com.br/blog/${resolvedSlug}`;
+      const safeTitle = post.title || "Reflexão Clínica";
+      const safeExcerpt = post.excerpt || "";
+      const publicCoverImage =
+        post.coverImageUrl && !post.coverImageUrl.startsWith("data:")
+          ? post.coverImageUrl
+          : "https://analimapsicologia.com.br/ana%20lima1.png";
 
       // 1. Atualiza Metadados de SEO, Open Graph e Twitter
-      document.title = `${post.title} • Psicóloga Ana Lima (CRP 04/60205)`;
-      document.getElementById("metaDesc").setAttribute("content", post.excerpt);
-      document.getElementById("canonicalUrl").setAttribute("href", fullUrl);
+      document.title = `${safeTitle} • Psicóloga Ana Lima (CRP 04/60205)`;
+      document.getElementById("metaDesc")?.setAttribute("content", safeExcerpt);
+      document.getElementById("canonicalUrl")?.setAttribute("href", fullUrl);
 
-      document.getElementById("ogTitle").setAttribute("content", post.title);
-      document.getElementById("ogDesc").setAttribute("content", post.excerpt);
-      document.getElementById("ogUrl").setAttribute("href", fullUrl);
-      if (post.coverImageUrl) {
-        document.getElementById("ogImage").setAttribute("content", post.coverImageUrl);
-        document.getElementById("twImage").setAttribute("content", post.coverImageUrl);
-      }
+      document.getElementById("ogTitle")?.setAttribute("content", safeTitle);
+      document.getElementById("ogDesc")?.setAttribute("content", safeExcerpt);
+      document.getElementById("ogUrl")?.setAttribute("content", fullUrl);
+      document.getElementById("ogImage")?.setAttribute("content", publicCoverImage);
+      document.getElementById("twTitle")?.setAttribute("content", safeTitle);
+      document.getElementById("twDesc")?.setAttribute("content", safeExcerpt);
+      document.getElementById("twImage")?.setAttribute("content", publicCoverImage);
 
       // 2. Atualiza JSON-LD Estruturado (SEO, AEO e GEO)
       const schemaData = {
@@ -1118,9 +1147,9 @@
           "@type": "WebPage",
           "@id": fullUrl
         },
-        "headline": post.title,
-        "description": post.excerpt,
-        "image": post.coverImageUrl || "https://analimapsicologia.com.br/ana%20lima1.png",
+        "headline": safeTitle,
+        "description": safeExcerpt,
+        "image": publicCoverImage,
         "datePublished": post.publishedAt || "2026-10-20T10:00:00Z",
         "dateModified": post.updatedAt || post.publishedAt || "2026-10-20T10:00:00Z",
         "author": {
@@ -1187,7 +1216,7 @@
 
       // Corpo do texto
       const articleBody = document.getElementById("articleBody");
-      articleBody.innerHTML = post.contentHtml;
+      articleBody.innerHTML = post.contentHtml || "";
 
       // Gera o Índice (Table of Contents) a partir de H2 e H3
       generateTableOfContents(articleBody);
@@ -1207,17 +1236,17 @@
 
       // Links de WhatsApp contextualizados com o título lido
       const waMsg = encodeURIComponent(
-        `Olá, Ana! Li seu artigo "${post.title}" em seu blog e gostaria de agendar uma conversa sobre psicoterapia.`
+        `Olá, Ana! Li seu artigo "${safeTitle}" em seu blog e gostaria de agendar uma conversa sobre psicoterapia.`
       );
       const waUrl = `https://wa.me/5531992949211?text=${waMsg}`;
-      document.getElementById("headerWaBtn").setAttribute("href", waUrl);
-      document.getElementById("closingWaBtn").setAttribute("href", waUrl);
+      document.getElementById("headerWaBtn")?.setAttribute("href", waUrl);
+      document.getElementById("closingWaBtn")?.setAttribute("href", waUrl);
 
       // Compartilhamento
       const waShareMsg = encodeURIComponent(
-        `Recomendo esta leitura da Psicóloga Ana Lima:\n"${post.title}"\n${fullUrl}`
+        `Recomendo esta leitura da Psicóloga Ana Lima:\n"${safeTitle}"\n${fullUrl}`
       );
-      document.getElementById("shareWa").setAttribute("href", `https://api.whatsapp.com/send?text=${waShareMsg}`);
+      document.getElementById("shareWa")?.setAttribute("href", `https://api.whatsapp.com/send?text=${waShareMsg}`);
 
       document.getElementById("shareCopy").addEventListener("click", () => {
         navigator.clipboard.writeText(fullUrl);

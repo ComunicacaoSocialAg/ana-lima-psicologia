@@ -1,14 +1,107 @@
 {
   "cleanUrls": true,
   "trailingSlash": false,
+  "functions": {
+    "api/*.js": {
+      "includeFiles": "{llms.txt,404.html,blog/*.html}"
+    }
+  },
+  "redirects": [
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.analimapsicologia.com.br"
+        }
+      ],
+      "destination": "https://analimapsicologia.com.br/",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "www.analimapsicologia.com.br"
+        }
+      ],
+      "destination": "https://analimapsicologia.com.br/:path*",
+      "permanent": true
+    },
+    {
+      "source": "/",
+      "has": [
+        {
+          "type": "host",
+          "value": "analimapsicologa.com.br"
+        }
+      ],
+      "destination": "https://analimapsicologia.com.br/",
+      "permanent": true
+    },
+    {
+      "source": "/:path*",
+      "has": [
+        {
+          "type": "host",
+          "value": "analimapsicologa.com.br"
+        }
+      ],
+      "destination": "https://analimapsicologia.com.br/:path*",
+      "permanent": true
+    }
+  ],
   "rewrites": [
     {
+      "source": "/",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": ".*text/markdown.*"
+        }
+      ],
+      "destination": "/api/home"
+    },
+    {
+      "source": "/",
+      "destination": "/home"
+    },
+    {
+      "source": "/sitemap.xml",
+      "destination": "/api/sitemap"
+    },
+    {
       "source": "/blog",
-      "destination": "/blog/index.html"
+      "destination": "/api/blog"
     },
     {
       "source": "/blog/:slug",
-      "destination": "/blog/post"
+      "destination": "/api/post?slug=:slug"
+    },
+    {
+      "source": "/about",
+      "destination": "/sobre"
+    },
+    {
+      "source": "/contact",
+      "destination": "/contato"
+    },
+    {
+      "source": "/privacy",
+      "destination": "/privacidade"
+    },
+    {
+      "source": "/:path((?!api/|blog/|home|sobre|about|contato|contact|privacidade|privacy|robots\\.txt|sitemap\\.xml|llms\\.txt|.*\\.(?:html|css|js|mjs|json|xml|txt|png|jpg|jpeg|webp|svg|mp4|glb|woff2|pdf|ico)$).*)",
+      "has": [
+        {
+          "type": "header",
+          "key": "accept",
+          "value": ".*text/markdown.*"
+        }
+      ],
+      "destination": "/api/not-found"
     }
   ],
   "headers": [
@@ -26,6 +119,28 @@
         {
           "key": "X-XSS-Protection",
           "value": "1; mode=block"
+        },
+        {
+          "key": "Referrer-Policy",
+          "value": "strict-origin-when-cross-origin"
+        }
+      ]
+    },
+    {
+      "source": "/",
+      "headers": [
+        {
+          "key": "Vary",
+          "value": "Accept"
+        }
+      ]
+    },
+    {
+      "source": "/(.*\\.(?:webp|jpg|jpeg|png|svg|mp4|woff2))",
+      "headers": [
+        {
+          "key": "Cache-Control",
+          "value": "public, max-age=2592000, stale-while-revalidate=86400"
         }
       ]
     },
@@ -34,7 +149,11 @@
       "headers": [
         {
           "key": "Cache-Control",
-          "value": "public, max-age=3600, s-maxage=86400, stale-while-revalidate=86400"
+          "value": "public, max-age=0, s-maxage=300, stale-while-revalidate=3600"
+        },
+        {
+          "key": "Vary",
+          "value": "Accept"
         }
       ]
     }
