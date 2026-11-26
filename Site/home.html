@@ -366,7 +366,8 @@
       pointer-events: none;
       z-index: 40;
       opacity: 0.022;
-      background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 200 200' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='noiseFilter'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23noiseFilter)'/%3E%3C/svg%3E");
+      background-image: url("/grain.webp");
+      background-repeat: repeat;
     }
 
     /* ==========================================================================
@@ -2755,15 +2756,14 @@
       <div id="heroVideoStage" class="hero-video-frame" aria-hidden="true">
         <video
           id="heroVideo"
-          autoplay
           muted
           playsinline
-          preload="metadata"
+          preload="none"
           width="1920"
           height="1080"
           poster="hero-poster.webp"
         >
-          <source src="ana-lima-hero.mp4" type="video/mp4" />
+          <source data-src="ana-lima-hero.mp4" type="video/mp4" />
         </video>
         <div class="hero-video-text-mask"></div>
       </div>
@@ -3931,8 +3931,20 @@
           });
           heroVideo.addEventListener('ended', reveal);
           heroVideo.addEventListener('error', reveal);
-          const p = heroVideo.play();
-          if (p !== undefined) p.catch(reveal);
+          const startVideo = () => {
+            const srcEl = heroVideo.querySelector('source[data-src]');
+            if (srcEl && !srcEl.getAttribute('src')) {
+              srcEl.setAttribute('src', srcEl.getAttribute('data-src'));
+              heroVideo.load();
+            }
+            const p = heroVideo.play();
+            if (p !== undefined) p.catch(reveal);
+          };
+          if (document.readyState === 'complete') {
+            setTimeout(startVideo, 60);
+          } else {
+            window.addEventListener('load', () => setTimeout(startVideo, 60), { once: true });
+          }
         } else {
           reveal();
         }
