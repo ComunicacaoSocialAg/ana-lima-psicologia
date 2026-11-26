@@ -8,6 +8,16 @@
   },
   "redirects": [
     {
+      "source": "/blog/post",
+      "destination": "/blog",
+      "permanent": true
+    },
+    {
+      "source": "/blog/post.html",
+      "destination": "/blog",
+      "permanent": true
+    },
+    {
       "source": "/",
       "has": [
         {
