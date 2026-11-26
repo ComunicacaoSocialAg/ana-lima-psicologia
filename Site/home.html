@@ -18,8 +18,8 @@
   <!-- ==========================================================================
        SEO, AEO (Answer Engine Optimization), GEO (Generative Engine) & ZERO-CLICK
        ========================================================================== -->
-  <title>Ana Lima • Psicóloga Clínica em Poços de Caldas e Online | Abordagem Histórico-Cultural (CRP 04/60205)</title>
-  <meta name="description" content="Psicoterapia clínica presencial em Poços de Caldas/MG e online para todo o Brasil e exterior com a Psicóloga Ana Lima (CRP 04/60205). Abordagem Histórico-Cultural e do Desenvolvimento Humano: escuta ética e qualificada para ansiedade, repetição de padrões e transições de vida." />
+  <title>Psicóloga em Poços de Caldas e Online | Ana Lima (CRP 04/60205)</title>
+  <meta name="description" content="Psicoterapia presencial em Poços de Caldas/MG e online com Ana Lima (CRP 04/60205). Abordagem Histórico-Cultural para ansiedade, vínculos e transições de vida." />
   <meta name="keywords" content="Psicóloga em Poços de Caldas, Ana Paula de Lima Psicóloga, Ana Lima Psicóloga CRP 04/60205, Psicologia Histórico-Cultural, Psicoterapia Online, Terapia Histórico-Cultural Vygotsky, Psicóloga Ansiedade Poços de Caldas, Desenvolvimento Humano, Clínica de Psicologia Poços de Caldas MG" />
   <meta name="author" content="Ana Paula de Lima • Psicóloga Clínica (CRP 04/60205)" />
   <meta name="robots" content="index, follow, max-image-preview:large, max-snippet:-1, max-video-preview:-1" />
@@ -62,7 +62,9 @@
   <link rel="preload" as="image" href="hero-poster.webp" fetchpriority="high" />
   <link rel="preconnect" href="https://fonts.googleapis.com" />
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" />
+  <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" />
+  <link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" media="print" onload="this.media='all'" />
+  <noscript><link href="https://fonts.googleapis.com/css2?family=Cormorant+Garamond:ital,wght@0,400;0,500;0,600;0,700;1,400;1,600&family=Plus+Jakarta+Sans:wght@300;400;500;600&display=swap" rel="stylesheet" /></noscript>
 
   <!-- ==========================================================================
        STRUCTURED DATA GRAPH (JSON-LD) • SEO, AEO, GEO & ZERO-CLICK OPTIMIZATION
@@ -117,10 +119,18 @@
         "availableService": [
           {
             "@type": "MedicalTherapy",
-            "name": "Psicoterapia Clínica Histórico-Cultural Individual (Online e Presencial)",
-            "description": "Sessões semanais individuais de 50 minutos voltadas à investigação histórica e estrutural do sofrimento psíquico, promoção da tomada de consciência e construção de autonomia."
+            "name": "Psicoterapia Presencial em Poços de Caldas (Abordagem Histórico-Cultural)",
+            "url": "https://analimapsicologia.com.br/psicologa-em-pocos-de-caldas",
+            "description": "Sessões semanais individuais de 50 minutos em Poços de Caldas/MG voltadas à investigação histórica do sofrimento psíquico, tomada de consciência e autonomia."
+          },
+          {
+            "@type": "MedicalTherapy",
+            "name": "Psicoterapia Online Individual (e-Psi / CFP)",
+            "url": "https://analimapsicologia.com.br/psicoterapia-online",
+            "description": "Atendimento psicológico por videochamada criptografada de ponta a ponta para todo o Brasil e brasileiros no exterior."
           }
         ],
+        "knowsLanguage": ["pt-BR"],
         "founder": { "@id": "https://analimapsicologia.com.br/#psychologist" }
       },
       {
@@ -2738,7 +2748,9 @@
           autoplay
           muted
           playsinline
-          preload="auto"
+          preload="metadata"
+          width="1920"
+          height="1080"
           poster="hero-poster.webp"
         >
           <source src="ana-lima-hero.mp4" type="video/mp4" />
@@ -4585,5 +4597,6 @@
       updateStickyBar();
     })();
   </script>
+  <script defer src="/analytics.js"></script>
 </body>
 </html>

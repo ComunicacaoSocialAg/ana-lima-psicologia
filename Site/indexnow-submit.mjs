@@ -13,6 +13,8 @@ const KEY_LOCATION = `https://${HOST}/${KEY}.txt`;
 
 const FALLBACK_URLS = [
   `https://${HOST}/`,
+  `https://${HOST}/psicologa-em-pocos-de-caldas`,
+  `https://${HOST}/psicoterapia-online`,
   `https://${HOST}/sobre`,
   `https://${HOST}/contato`,
   `https://${HOST}/privacidade`,

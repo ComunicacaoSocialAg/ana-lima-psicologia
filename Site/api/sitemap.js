@@ -11,6 +11,8 @@ module.exports = async (req, res) => {
 
   const staticPages = [
     { loc: `${BASE_URL}/`, lastmod: today, changefreq: 'weekly', priority: '1.0' },
+    { loc: `${BASE_URL}/psicologa-em-pocos-de-caldas`, lastmod: today, changefreq: 'monthly', priority: '0.9' },
+    { loc: `${BASE_URL}/psicoterapia-online`, lastmod: today, changefreq: 'monthly', priority: '0.9' },
     { loc: `${BASE_URL}/sobre`, lastmod: today, changefreq: 'monthly', priority: '0.8' },
     { loc: `${BASE_URL}/contato`, lastmod: today, changefreq: 'monthly', priority: '0.8' },
     { loc: `${BASE_URL}/privacidade`, lastmod: today, changefreq: 'yearly', priority: '0.5' },

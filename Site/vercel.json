@@ -93,7 +93,7 @@
       "destination": "/privacidade"
     },
     {
-      "source": "/:path((?!api/|blog/|home|sobre|about|contato|contact|privacidade|privacy|robots\\.txt|sitemap\\.xml|llms\\.txt|.*\\.(?:html|css|js|mjs|json|xml|txt|png|jpg|jpeg|webp|svg|mp4|glb|woff2|pdf|ico)$).*)",
+      "source": "/:path((?!api/|blog/|home|sobre|about|contato|contact|privacidade|privacy|psicologa-em-pocos-de-caldas|psicoterapia-online|robots\\.txt|sitemap\\.xml|llms\\.txt|.*\\.(?:html|css|js|mjs|json|xml|txt|png|jpg|jpeg|webp|svg|mp4|glb|woff2|pdf|ico)$).*)",
       "has": [
         {
           "type": "header",
