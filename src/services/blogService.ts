@@ -8,7 +8,6 @@ import {
   query,
   where,
   orderBy,
-  limit,
 } from "firebase/firestore";
 import { getStorage, ref, uploadBytes, getDownloadURL } from "firebase/storage";
 import { db, app } from "./firebase";
@@ -419,13 +418,15 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
     try {
       const q = query(
         collection(db, COLLECTION_NAME),
-        where("slug", "==", slug),
-        limit(1)
+        where("status", "==", "published")
       );
       const snapshot = await getDocs(q);
-      if (!snapshot.empty) {
-        const d = snapshot.docs[0];
-        const post = { id: d.id, ...d.data() } as BlogPost;
+      const match = snapshot.docs.find((d) => {
+        const data = d.data();
+        return data.slug === slug || d.id === slug;
+      });
+      if (match) {
+        const post = { id: match.id, ...match.data() } as BlogPost;
         if (!deletedIds.includes(post.id) && !deletedIds.includes(post.slug)) {
           return post;
         }
@@ -438,6 +439,39 @@ export async function getPostBySlug(slug: string): Promise<BlogPost | null> {
   return null;
 }
 
+async function resolveUniqueSlug(
+  desiredSlug: string,
+  currentId: string,
+  localPosts: BlogPost[]
+): Promise<string> {
+  const takenSlugs = new Set<string>();
+  localPosts.forEach((p) => {
+    if (p.id !== currentId && p.slug) takenSlugs.add(p.slug);
+  });
+
+  if (db) {
+    try {
+      const snapshot = await getDocs(collection(db, COLLECTION_NAME));
+      snapshot.docs.forEach((d) => {
+        const data = d.data();
+        if (d.id !== currentId && typeof data.slug === "string" && data.slug) {
+          takenSlugs.add(data.slug);
+        }
+      });
+    } catch {
+      // Se não for possível consultar todos os posts, usa a lista local disponível
+    }
+  }
+
+  if (!takenSlugs.has(desiredSlug)) return desiredSlug;
+
+  let suffix = 2;
+  while (takenSlugs.has(`${desiredSlug}-${suffix}`)) {
+    suffix += 1;
+  }
+  return `${desiredSlug}-${suffix}`;
+}
+
 /**
  * Salva ou atualiza um post de forma resiliente e garantida.
  */
@@ -447,8 +481,13 @@ export async function savePost(
   const now = new Date().toISOString();
   const id =
     post.id || `post_${Date.now()}_${Math.random().toString(36).substring(2, 7)}`;
-  const slug = post.slug?.trim() || generateSlug(post.title);
+  const local = getLocalPosts();
+  const baseSlug =
+    generateSlug(post.slug?.trim() || post.title) || id;
+  const slug = await resolveUniqueSlug(baseSlug, id, local);
   const readTimeMinutes = calculateReadTime(post.contentHtml || "");
+  const resolvedPublishedAt =
+    post.status === "published" ? post.publishedAt || now : post.publishedAt;
 
   const postData: BlogPost = {
     id,
@@ -463,10 +502,7 @@ export async function savePost(
     tags: post.tags || [],
     status: post.status || "draft",
     readTimeMinutes,
-    publishedAt:
-      post.status === "published"
-        ? post.publishedAt || now
-        : post.publishedAt || undefined,
+    ...(resolvedPublishedAt ? { publishedAt: resolvedPublishedAt } : {}),
     createdAt: post.createdAt || now,
     updatedAt: now,
     authorName: post.authorName || "Ana Lima",
@@ -483,8 +519,7 @@ export async function savePost(
     localStorage.setItem(DELETED_POSTS_KEY, JSON.stringify(updatedDeleted));
   }
 
-  // 1. Grava no cache local para persistência garantida
-  const local = getLocalPosts();
+  // 1. Grava no cache local para não perder o texto em caso de queda de conexão
   const idx = local.findIndex((p) => p.id === id);
   if (idx >= 0) {
     local[idx] = postData;
@@ -493,14 +528,33 @@ export async function savePost(
   }
   setLocalPosts(local);
 
-  // 2. Tenta persistência na nuvem (Firestore)
-  if (db) {
-    try {
-      const docRef = doc(db, COLLECTION_NAME, id);
-      await setDoc(docRef, postData, { merge: true });
-    } catch (err) {
-      console.warn("Firestore gravado com segurança no armazenamento local:", err);
+  // 2. Persistência obrigatória na nuvem (Firestore) para que o site público enxergue o artigo
+  if (!db) {
+    throw new Error("Conexão com o banco de dados não configurada.");
+  }
+
+  try {
+    const docRef = doc(db, COLLECTION_NAME, id);
+    await setDoc(docRef, postData, { merge: true });
+  } catch (err: any) {
+    console.error("Falha ao salvar post no Firestore:", err);
+    const code = err?.code || "";
+    if (code === "permission-denied" || code === "unauthenticated") {
+      throw new Error(
+        "Sua sessão de login expirou ou está sem permissão para publicar. O texto foi guardado localmente neste navegador; faça login novamente e clique em publicar."
+      );
     }
+    throw new Error(
+      "Não foi possível publicar na nuvem. O texto foi salvo apenas neste navegador — verifique sua conexão e tente novamente."
+    );
+  }
+
+  if (postData.status === "published") {
+    fetch("https://analimapsicologia.com.br/api/notify-indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ slug: postData.slug }),
+    }).catch(() => {});
   }
 
   return id;
@@ -513,23 +567,23 @@ export async function deletePost(id: string): Promise<void> {
   const local = getLocalPosts();
   const target = local.find((p) => p.id === id);
 
-  // 1. Registra exclusão permanente
-  addDeletedPostId(id);
-  if (target?.slug) {
-    addDeletedPostId(target.slug);
-  }
-
-  // 2. Remove do armazenamento local
-  const updated = local.filter((p) => p.id !== id);
-  setLocalPosts(updated);
-
-  // 3. Remove do Firestore
+  // 1. Remove do Firestore primeiro para não dessincronizar do site público
   if (db) {
     try {
       const docRef = doc(db, COLLECTION_NAME, id);
       await deleteDoc(docRef);
     } catch (err) {
-      console.warn("Exclusão Firestore processada localmente:", err);
+      console.error("Falha ao remover post do Firestore:", err);
+      throw new Error("Não foi possível remover o artigo da nuvem. Verifique sua sessão e tente novamente.");
     }
   }
+
+  // 2. Registra exclusão permanente e remove do armazenamento local
+  addDeletedPostId(id);
+  if (target?.slug) {
+    addDeletedPostId(target.slug);
+  }
+
+  const updated = local.filter((p) => p.id !== id);
+  setLocalPosts(updated);
 }
