@@ -3,7 +3,7 @@ import { initializeApp } from "firebase-admin/app";
 import { getFirestore, FieldValue, Timestamp } from "firebase-admin/firestore";
 import { getStorage } from "firebase-admin/storage";
 import { onCall, onRequest, HttpsError } from "firebase-functions/v2/https";
-import { onDocumentCreated } from "firebase-functions/v2/firestore";
+import { onDocumentCreated, onDocumentWritten } from "firebase-functions/v2/firestore";
 import { onSchedule } from "firebase-functions/v2/scheduler";
 import { defineSecret, defineString } from "firebase-functions/params";
 import { timingSafeEqual, createHmac } from "node:crypto";
@@ -1169,5 +1169,42 @@ export const reissueBilling = onCall(
     });
     await audit("charge_reissue_approved", newId);
     return issue(newId);
+  },
+);
+
+export const notifyIndexNowOnBlogWrite = onDocumentWritten(
+  { document: "blog_posts/{postId}", region },
+  async (event) => {
+    const after = event.data?.after?.data();
+    if (!after || after.status !== "published") return;
+
+    const slug = after.slug || event.params.postId;
+    const host = "analimapsicologia.com.br";
+    const key = "d921f9510cc174539d30ece9bbc5aa9a";
+    const payload = {
+      host,
+      key,
+      keyLocation: `https://${host}/${key}.txt`,
+      urlList: [
+        `https://${host}/blog`,
+        `https://${host}/blog/${encodeURIComponent(slug)}`,
+        `https://${host}/sitemap.xml`,
+      ],
+    };
+
+    const endpoints = [
+      "https://api.indexnow.org/indexnow",
+      "https://www.bing.com/indexnow",
+    ];
+    await Promise.allSettled(
+      endpoints.map((endpoint) =>
+        fetch(endpoint, {
+          method: "POST",
+          headers: { "Content-Type": "application/json; charset=utf-8" },
+          body: JSON.stringify(payload),
+          signal: AbortSignal.timeout(5000),
+        }),
+      ),
+    );
   },
 );
