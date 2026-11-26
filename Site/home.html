@@ -3201,6 +3201,8 @@
         <p><strong>Atendimento Online:</strong> Território Nacional e Exterior (Videochamada Segura)</p>
         <p style="margin-top:10px;display:flex;flex-wrap:wrap;gap:12px;">
           <a href="/blog" style="color:var(--accent-terracotta);font-weight:600;">Caderno Clínico &amp; Blog &rarr;</a>
+          <a href="/psicologa-em-pocos-de-caldas">Psicóloga em Poços de Caldas</a>
+          <a href="/psicoterapia-online">Psicoterapia Online</a>
           <a href="/sobre">Sobre Ana Lima</a>
           <a href="/contato">Agendamento &amp; Contato</a>
           <a href="/privacidade">Privacidade &amp; LGPD</a>
@@ -4601,10 +4603,17 @@
         document.body.style.overflow = '';
       });
 
-      resize();
-      refreshContentElements();
-      initBotanicalGarden();
       updateStickyBar();
+      const bootCanvasGarden = () => {
+        resize();
+        refreshContentElements();
+        initBotanicalGarden();
+      };
+      if ('requestIdleCallback' in window) {
+        requestIdleCallback(bootCanvasGarden, { timeout: 300 });
+      } else {
+        setTimeout(bootCanvasGarden, 120);
+      }
     })();
   </script>
   <script defer src="/analytics.js"></script>
