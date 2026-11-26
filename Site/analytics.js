@@ -63,9 +63,9 @@
       return;
     }
 
-    if (href.indexOf('instagram.com') !== -1) {
+    if (href.indexOf('instagram.com') !== -1 || href.indexOf('linkedin.com') !== -1) {
       sendEvent('social_click', {
-        network: 'instagram',
+        network: href.indexOf('linkedin.com') !== -1 ? 'linkedin' : 'instagram',
         cta_location: detectCtaLocation(link),
         page_path: pagePath,
         transport_type: 'beacon'
